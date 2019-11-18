@@ -85,6 +85,13 @@ class ReactFactory:
             return installed
 
     def isDuplicateDirname(self):
+        """
+        This method checks if a duplicate name exists in the directory in which the react application is to be created.
+        If duplicate name exists, returns True. Otherwise returns False
+
+        Input: void
+        Output: boolean
+        """
         dirs = os.listdir(self._cwd)
         if self._reactDirname in dirs:  # if has duplicate name
             return True
@@ -92,6 +99,9 @@ class ReactFactory:
             return False
 
     def overwriteDuplicateFolderName(self):
+        """
+        This method checks if user wants to overwrite duplicate directory name if it exists. User is asked and based on user response, erases duplicate 
+        """
         print("Directory named '%s' already exists." % self._reactDirname)
         prompt = "Would you like to overwrite directory (y/n)? "
         response = input(prompt).lower()
@@ -262,14 +272,26 @@ class ReactFactory:
                 f.write(self.getBootstrapImport() + content)
 
     def cleanReactAppDir(self):
+        """
+        This method clears the predefined css files and the index.js file. 
+        It replaces each of these files with user created/defined files
+
+        Input: void
+        Output: void
+        """
         pass
 
     def insertCSSToFile(self, filename, css):
+        """
+        This method inserts the css files into the styles directory that will be used by all components of the react application.
+        These will be imported into all the component classes via another method
+        """
         pass
 
     def insertMathJax(self):
         """
         This method inserts the MathJax CDN into index.html in the react application
+        Uses BeautifulSoup to insert script tags into the index.html file
 
         Input: void
         Output: void
@@ -283,7 +305,15 @@ class ReactFactory:
         Input: string[] - list of components to render
         Output: void
         """
-        pass
+        ui = ""
+        render = """
+        ReactDOM.render(
+            <React.Fragment>
+                %s
+            </React.Fragment>, document.getElementById(root)
+        );
+        """ 
+        return render
 
 
 
