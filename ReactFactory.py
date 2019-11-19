@@ -398,15 +398,15 @@ MathJax.Hub.Config({tex2jax: {
         Input: string[] - list of components to render
         Output: void
         """
-        ui = ""
-        render = """
+
+        ui = """
 ReactDOM.render(
     <React.Fragment>
         %s
     </React.Fragment>, document.getElementById(root)
 );
 """ 
-        return render
+        return ui
 
 
 
@@ -426,17 +426,28 @@ def seedFiles(cssFiles):
             file.close()
 
 if __name__ == "__main__":
-    # commented means it works correctly and has been unit tested
-    cssFiles = ["main.css", "textbox.css"]
-    seedFiles(cssFiles)
+    # try-catch block is to handle the keyboard interrupt exception
+    try:
+        # commented means it works correctly and has been unit tested
+        cssFiles = ["main.css", "textbox.css"]
+        seedFiles(cssFiles)
 
-    factory = ReactFactory()
-    factory.testRequirements()
-    factory.createComponentDir()
-    factory.createCSSDir()
-    factory.moveToCssDir(cssFiles)
-    factory.getAllCSSImports()
-    factory.insertBootstrap4()
-    factory.cleanReactAppDir()
-    factory.createComponent("TestComponent", "<h1>David</h1>", "", True)
-    factory.insertMathJax()
+        factory = ReactFactory()
+        factory.testRequirements()
+        factory.createComponentDir()
+        factory.createCSSDir()
+        factory.moveToCssDir(cssFiles)
+        factory.getAllCSSImports()
+        factory.insertBootstrap4()
+        factory.cleanReactAppDir()
+        factory.createComponent("TestComponent", "<h1>David</h1>", "", True)
+        factory.insertMathJax()
+    except KeyboardInterrupt:
+        print("\nCancelling creation of react application...")
+        if os.path.exists("jemdoc-website"):
+            path = os.path.join(os.getcwd(), "jemdoc-website")
+            try:
+                shutil.rmtree(path)
+            except:
+                os.rmdir(path)   
+
