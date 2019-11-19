@@ -7,7 +7,9 @@ from bs4 import BeautifulSoup
 
 
 class ReactFactory:
-    def __init__(self, name="jemdoc-website"):
+    def __init__(self):
+        name, title = self.getMetaDataFromUser()
+        self._appTitle = title
         self._cwd = os.getcwd()
         self._reactDirname = name
         self._mathjax = '''
@@ -24,6 +26,27 @@ class ReactFactory:
         </script>
         '''
         self._pathToCSS = None
+
+    def getMetaDataFromUser(self):
+        print("""
+This utility will walk you through creating a react application.
+If no answer is provided by the user a default name in parenthesis will be used
+Press ^C at any time to quit.
+""")
+
+        prompt = "application name (jemdoc-website): "
+        defaultName = "jemdoc-website"
+        name = input(prompt)
+        if name == "" or not name:
+            name = defaultName.strip().lower()
+
+        prompt = "application title (Jemdoc Website): "
+        defaultTitle = "Jemdoc Website"
+        title = input(prompt)
+        if title == "" or not title:
+            title = defaultTitle.strip().lower()
+        
+        return (name.strip().lower(), title.strip().lower())
 
     def requestToCreateReactApp(self):
         response = input(
@@ -117,6 +140,13 @@ class ReactFactory:
             return False
 
     def testRequirements(self):
+        """
+        This method verifies that all the necessary requirements needed to create a react application have been met
+        If True a react application is created, otherwise it falls back to creating a static jemdoc website
+
+        Input: void
+        Output: boolean - whether all the requirements have been met
+        """
         if self.isDuplicateDirname():
             if not self.overwriteDuplicateFolderName():
                 sys.exit(0)
@@ -176,8 +206,10 @@ class ReactFactory:
         # cssFiles is a list of css files
         cssDir = self.getCSSDir()
         for css in cssFiles:
-            # print(os.path.join(self._cwd, css))
-            self.move(os.path.join(self._cwd, css), os.path.join(cssDir, css))
+            source = os.path.join(self._cwd, css)
+            dest = os.path.join(cssDir, css)
+            # print("Moving %s to %s" %(source, dest)) # debug
+            self.move(source, dest)
 
     def askForNewFilename(self):
         response = input("Please enter a new filename: ").capitalize()
@@ -208,30 +240,54 @@ class ReactFactory:
         # print(imports)  # for debugging
         return imports
 
-    def createComponent(self, componentName, render, state=""):
+    def createComponent(self, componentName, render, state="", write=False):
+        """
+        This method creates a generic component and writes the component to a JSX file in the  components directory
+        """
         component = """
-        %s
+%s
 
-        import { React } from 'react';
+import { React } from 'react';
 
-        export class %s extends React.Component {
-            constructor(props) {
-                super(props);
+export class %s extends React.Component {
+    constructor(props) {
+        super(props);
 
-                this.state = {%s};
-            }
+        this.state = {%s};
+    }
 
-            render() {
-                return (
-                    <React.Fragment>
-                    %s
-                    </React.Fragment>
-                );
-            }
-        }
-        """ % (self.getAllCSSImports(), componentName, state, render)
+    render() {
+        return (
+            <React.Fragment>
+                %s
+            </React.Fragment>
+        );
+    }
+}
+""" % (self.getAllCSSImports(), componentName, state, render)
 
+        filename = "%s.jsx" %componentName.capitalize()
+        # print(component) #debug
+        if write:
+            self.writeComponent(filename, component)
         return component
+
+    def writeComponent(self, filename, component):
+        """
+        This method creates and flushes the component file into the components directory as a JSX file
+
+        Input: string - filename, string - component JSX file contents
+        Output: void
+        """
+        file = open(filename, "w+")
+        componentsDir = self.getComponentsDir()
+        if not os.path.exists(componentsDir):
+            os.makedirs(componentsDir)
+        fullPath = os.path.join(componentsDir, filename)
+        # print(fullPath) # debug
+        file.write(fullPath)
+        file.flush()
+        file.close()
 
     def addBootstrap(self, version = "4.3.1"):
         """
@@ -260,7 +316,7 @@ class ReactFactory:
         Input: void
         Output: string - import statements
         """
-        return "import '../node_modules/bootstrap/dist/css/bootstrap.min.css'\nimport '../node_modules/bootstrap/dist/js/bootstrap.min.js'\nimport '../node_modules/jquery/dist/jquery.slim.min.js;\n\n\n"
+        return "import '../node_modules/bootstrap/dist/css/bootstrap.min.css';\nimport '../node_modules/bootstrap/dist/js/bootstrap.min.js';\nimport '../node_modules/jquery/dist/jquery.slim.min.js';\n\n\n"
 
     def insertBootstrap4(self):
         if self.addBootstrap():
@@ -279,14 +335,29 @@ class ReactFactory:
         Input: void
         Output: void
         """
-        pass
+        
+        # deleting the default CSS and JS files
+        path = self.getSrcDir()
+        os.chdir(path)
+        files = os.listdir()
 
-    def insertCSSToFile(self, filename, css):
-        """
-        This method inserts the css files into the styles directory that will be used by all components of the react application.
-        These will be imported into all the component classes via another method
-        """
-        pass
+        for file in files:
+            extension = os.path.splitext(file)[1]
+            # print(extension) # debug
+
+            if extension in (".css", ".js", ".svg"):
+                os.remove(file)
+        
+
+    # def insertCSSToFile(self, filename, css):
+    #     """
+    #     This method inserts the css files into the styles directory that will be used by all components of the react application.
+    #     These will be imported into all the component classes via another method
+    #     """
+    #     pass
+
+    def getPublicDir(self):
+        return os.path.join(self._cwd, self._reactDirname, "public")
 
     def insertMathJax(self):
         """
@@ -296,7 +367,29 @@ class ReactFactory:
         Input: void
         Output: void
         """
-        pass
+        # creating mathjax script and config tags to insert into index.html
+        path = os.path.join(self.getPublicDir(), "index.html")
+        html = open(path, "r+")
+        soup = BeautifulSoup(html, "html.parser")
+        scriptTag = soup.new_tag('script', src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_CHTML", type="text/javascript", asyn="async")
+        configTag = soup.new_tag("script", type="text/x-mathjax-config")
+        config = """
+MathJax.Hub.Config({tex2jax: {
+    inlineMath: [ ["$","$"], ["\\(","\\)"] ],
+    displayMath: [ ["$$","$$"], ["\\[","\\]"] ]
+}});"""
+        configTag.append(config)
+        soup.head.append(scriptTag)
+        soup.head.append(configTag)
+        newHTML = soup.prettify("utf-8")
+        
+        # TODO: Change title name to the title user gives in initialization
+
+        html.close()
+        
+        with open(path, "wb") as file:
+            file.write(newHTML)
+        
 
     def renderToDOM(self, components):
         """
@@ -307,32 +400,43 @@ class ReactFactory:
         """
         ui = ""
         render = """
-        ReactDOM.render(
-            <React.Fragment>
-                %s
-            </React.Fragment>, document.getElementById(root)
-        );
-        """ 
+ReactDOM.render(
+    <React.Fragment>
+        %s
+    </React.Fragment>, document.getElementById(root)
+);
+""" 
         return render
 
 
 
 
-
 def seedFiles(cssFiles):
+    if os.path.exists("jemdoc-website"):
+        path = os.path.join(os.getcwd(), "jemdoc-website")
+        try:
+            shutil.rmtree(path)
+        except:
+            os.rmdir(path)            
+
     for css in cssFiles:
-        os.makedirs(css)
+        if not os.path.exists(css):
+            file = open(css, "w")
+            file.flush()
+            file.close()
 
 if __name__ == "__main__":
     # commented means it works correctly and has been unit tested
-    #cssFiles = ["main.css", "textbox.css", "homepage.css", "about.css"]
-    #seedFiles(cssFiles)
+    cssFiles = ["main.css", "textbox.css"]
+    seedFiles(cssFiles)
 
     factory = ReactFactory()
-    # factory.testRequirements()
-    # factory.createComponentDir()
-    # factory.createCSSDir()
-    # factory.moveToCssDir(cssFiles)
-    # factory.getAllCSSImports()
-    # factory.insertBootstrap4()
-    # print(factory.createComponent("TestComponent", "<h1>David</h1>"))
+    factory.testRequirements()
+    factory.createComponentDir()
+    factory.createCSSDir()
+    factory.moveToCssDir(cssFiles)
+    factory.getAllCSSImports()
+    factory.insertBootstrap4()
+    factory.cleanReactAppDir()
+    factory.createComponent("TestComponent", "<h1>David</h1>", "", True)
+    factory.insertMathJax()
