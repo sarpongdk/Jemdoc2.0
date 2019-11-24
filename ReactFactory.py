@@ -14,33 +14,33 @@ class ReactFactory:
         self._components = []
 
     def getMetaDataFromUser(self):
-        print("""
+        print """
 \033[96mJemdoc 2.0 Initialization\033[00m
 
 This utility will walk you through creating a react application.
 If no answer is provided by the user a default name in parenthesis will be used
 Press ^C \033[91m(Ctrl + C)\033[00m at any time to quit.
-""")
+"""
 
         prompt = "application name (\033[96mjemdoc-website\033[00m): "
         defaultName = "jemdoc-website"
-        name = input(prompt)
+        name = raw_input(prompt)
         if name == "" or not name:
             name = defaultName.strip().lower()
 
         prompt = "application title (\033[96mJemdoc Website\033[00m): "
         defaultTitle = "Jemdoc Website"
-        title = input(prompt)
+        title = raw_input(prompt)
         if title == "" or not title:
             title = defaultTitle.strip().lower()
         
         return (name.strip().lower(), title.strip().capitalize())
 
     def requestToCreateReactApp(self):
-        response = input(
+        response = raw_input(
             "Would you like to install create-react-app (\033[92my\033[00m/\033[91mn\033[00m) ").lower()
         while response not in ('y', 'yes', 'yeah', 'yah', 'n', 'no', 'nah'):
-            response = input(
+            response = raw_input(
                 "Would you like to install create-react-app (\033[92my\033[00m/\033[91mn\033[00m) ").lower()
 
         if response in ('yes', 'y', 'yah', 'yeah'):
@@ -49,11 +49,10 @@ Press ^C \033[91m(Ctrl + C)\033[00m at any time to quit.
                     'npm i create-react-app', shell=True)
                 return True
             except subprocess.CalledProcessError:
-                print(
-                    "The CLI `create-react-app unavailable`\n Creating a non-react jemdoc website...")
+                print "The CLI `create-react-app unavailable`\n Creating a non-react jemdoc website..."
                 return False
         else:
-            print("The CLI `create-react-app` is needed to create a react application.\nCreating a non-react jemdoc website...")
+            print "The CLI `create-react-app` is needed to create a react application.\nCreating a non-react jemdoc website..."
             return False
 
     def createReactApp(self):
@@ -61,12 +60,12 @@ Press ^C \033[91m(Ctrl + C)\033[00m at any time to quit.
             "create-react-app %s" % self._reactDirname, shell=True)
 
     def testCreateReactApp(self):
-        print("Creating react application named '\033[96m%s\033[00m'" % self._reactDirname)
+        print "Creating react application named '\033[96m%s\033[00m'" % self._reactDirname
         try:
             self.createReactApp()
             return True
         except subprocess.CalledProcessError as ex:
-            print("\033[91mWarn\033[00m: Unable to create react application without create-react-app")
+            print "\033[91mWarn\033[00m: Unable to create react application without create-react-app"
             return self.requestToCreateReactApp()
 
     def testNPM(self):
@@ -74,16 +73,16 @@ Press ^C \033[91m(Ctrl + C)\033[00m at any time to quit.
             output = subprocess.check_output('npm -v', shell=True)
             return True
         except subprocess.CalledProcessError as ex:
-            print("\033[91mWarn\033[00m: NPM needs to be installed to compile as a React Application\nCreating a non-react jemdoc website...")
+            print "\033[91mWarn\033[00m: NPM needs to be installed to compile as a React Application\nCreating a non-react jemdoc website..."
             return False
 
     def install(self, package):
         try:
             subprocess.check_output(
-                [sys.executable, "-m", "pip", "install", package])
+                [sys.executable, "-m", "pip2", "install", package])
             return True
         except subprocess.CalledProcessError as ex:
-            print("\033[91mWarn\033[00m: BeautifulSoup cannot be installed.\n Creating a non-react jemdoc website...")
+            print "\033[91mWarn\033[00m: BeautifulSoup cannot be installed.\n Creating a non-react jemdoc website..."
             return False
 
     def testBS4(self):
@@ -112,14 +111,14 @@ Press ^C \033[91m(Ctrl + C)\033[00m at any time to quit.
         """
         This method checks if user wants to overwrite duplicate directory name if it exists. User is asked and based on user response, erases duplicate 
         """
-        print("\033[92mInfo\033[00m: Directory named '%s' already exists." % self._reactDirname)
+        print "\033[92mInfo\033[00m: Directory named '%s' already exists." % self._reactDirname
         prompt = "Would you like to overwrite directory (\033[92my\033[00m/\033[91mn\033[00m)? "
-        response = input(prompt).lower()
+        response = raw_input(prompt).lower()
         while response not in ('y', 'yes', 'yeah', 'yah', 'n', 'no', 'nah'):
-            response = input(prompt).lower()
+            response = raw_input(prompt).lower()
 
         if response in ('yes', 'y', 'yah', 'yeah'):
-            print("\033[92mInfo\033[00m: Deleting directory named '%s'" %self._reactDirname)
+            print "\033[92mInfo\033[00m: Deleting directory named '%s'" %self._reactDirname
             path = os.path.join(os.getcwd(), self._reactDirname)
             shutil.rmtree(path)
             return True
@@ -143,15 +142,15 @@ Press ^C \033[91m(Ctrl + C)\033[00m at any time to quit.
         soup4 = self.testBS4()
 
         if (npm and reactApp and soup4):
-            print("Creating react application \033[91m(Ctrl + c to interrupt)\033[00m...")
+            print "Creating react application \033[91m(Ctrl + c to interrupt)\033[00m..."
             return True
         else:
-            print("System requirements have not been met. Please ensure NPM and create-react-app are installed on system")
-            print("Creating a non-react jemdoc website...")
+            print "System requirements have not been met. Please ensure NPM and create-react-app are installed on system"
+            print "Creating a non-react jemdoc website..."
             return False
 
     def raiseError(self, msg):
-        print(msg)
+        print msg
         sys.exit(0)
 
     def getComponentsDir(self):
@@ -168,7 +167,7 @@ Press ^C \033[91m(Ctrl + C)\033[00m at any time to quit.
         if not os.path.exists(dirname):
             os.makedirs(dirname)
         # os.chdir(dirname)
-        # print(os.getcwd())
+        # print os.getcwd()
 
     def createCSSDir(self):
         dirname = self.getCSSDir()
@@ -176,7 +175,7 @@ Press ^C \033[91m(Ctrl + C)\033[00m at any time to quit.
             os.makedirs(dirname)
 
     def move(self, source, destination):
-        # print(destination)
+        # print destination
         try:
             shutil.move(source, destination)
             return
@@ -185,34 +184,34 @@ Press ^C \033[91m(Ctrl + C)\033[00m at any time to quit.
 
     def moveToCssDir(self, cssFiles):
         """
-        This method moves css files provided by the user into the styles directory in the react application
+        This method moves css fileObjs provided by the user into the styles directory in the react application
 
-        Input: string[] - names of the css files
+        Input: string[] - names of the css fileObjs
         Return: void
         """
-        # cssFiles is a list of css files
+        # cssFiles is a list of css fileObjs
         cssDir = self.getCSSDir()
         for css in cssFiles:
             source = os.path.join(os.getcwd(), css)
             dest = os.path.join(cssDir, css)
-            # print("Moving %s to %s" %(source, dest)) # debug
+            # print "Moving %s to %s" %(source, dest) # debug
             self.move(source, dest)
 
     def askForNewFilename(self):
-        response = input("Please enter a new filename: ").capitalize()
+        response = raw_input("Please enter a new fileObjname: ").capitalize()
         return response
 
     def addComponent(self, component):
         """
-        This method adds the component file to the appropriate directory
+        This method adds the component fileObj to the appropriate directory
         """
         path = self.getComponentsDir()
-        filepath = os.join(path, component)
-        while os.path.exists(filepath):
-            print("Component with name '%s' already exists")
+        fileObjpath = os.join(path, component)
+        while os.path.exists(fileObjpath):
+            print "Component with name '%s' already exists"
             response = self.askForNewFilename()
-            filepath = os.join(path, response)
-        os.makedirs(filepath)
+            fileObjpath = os.join(path, response)
+        os.makedirs(fileObjpath)
 
     def getAllCSSImports(self):
         """
@@ -220,18 +219,18 @@ Press ^C \033[91m(Ctrl + C)\033[00m at any time to quit.
         """
         imports = ''
         cssDir = self.getCSSDir()
-        # print("CSS Directory: {}".format(cssDir))
+        # print "CSS Directory: %s" % cssDir
         cssFiles = os.listdir(cssDir)
         for css in cssFiles:
             cssPath = os.path.join(".", "styles", css)
             statement = "import '%s';\n" % cssPath
             imports += statement
-        # print(imports)  # for debugging
+        # print imports  # for debugging
         return imports
 
     def createComponent(self, componentName, render, state="", write=False):
         """
-        This method creates a generic component and writes the component to a JSX file in the  components directory
+        This method creates a generic component and writes the component to a JSX fileObj in the  components directory
         """
         component = """
 %s
@@ -255,29 +254,29 @@ export class %s extends React.Component {
 }
 """ % (self.getAllCSSImports(), componentName, state, render)
 
-        filename = "%s.jsx" %componentName.capitalize()
-        # print(component) #debug
+        fileObjname = "%s.jsx" %componentName.capitalize()
+        # print component #debug
         if write:
-            self.writeComponent(filename, component)
-        self._components.append(component)
+            self.writeComponent(fileObjname, component)
+        self._components.append(componentName.capitalize())
         return component
 
-    def writeComponent(self, filename, component):
+    def writeComponent(self, fileObjname, component):
         """
-        This method creates and flushes the component file into the components directory as a JSX file
+        This method creates and flushes the component fileObj into the components directory as a JSX fileObj
 
-        Input: string - filename, string - component JSX file contents
+        Input: string - fileObjname, string - component JSX fileObj contents
         Output: void
         """
         componentsDir = self.getComponentsDir()
         if not os.path.exists(componentsDir):
             os.makedirs(componentsDir)
 
-        filePath = os.path.join(componentsDir, filename)
-        file = open(filePath, "w+")
-        file.write(component)
-        file.flush()
-        file.close()
+        fileObjPath = os.path.join(componentsDir, fileObjname)
+        fileObj = open(fileObjPath, "w+")
+        fileObj.write(component)
+        fileObj.flush()
+        fileObj.close()
 
     def addBootstrap(self, version = "4.3.1"):
         """
@@ -291,13 +290,13 @@ export class %s extends React.Component {
         reactAppDir = os.path.join(originalDir, self._reactDirname)
         os.chdir(reactAppDir);
         try:
-            print("Adding Twitter Bootstrap4 to application...")
+            print "Adding Twitter Bootstrap4 to application..."
             output = subprocess.check_output("npm i -S tsutils@3.17.1 jquery@1.9.1 popper.js@1.14.7 bootstrap@%s" %version, shell=True)
             # output = subprocess.check_output("npm i -S jquery@1.9.1", shell=True)
             # output = subprocess.check_output("npm i -S popper.js@1.14.7", shell=True)
             return True
         except subprocess.CalledProcessError as ex:
-            print("\033[91mWarn\033[00m: Twitter Bootstrap4 has not been installed. Proceeding without Twitter Bootstrap4")
+            print "\033[91mWarn\033[00m: Twitter Bootstrap4 has not been installed. Proceeding without Twitter Bootstrap4"
             return False
         finally:
             os.chdir(originalDir)
@@ -319,7 +318,7 @@ import '../node_modules/jquery/dist/jquery.slim.min.js';
     # def insertBootstrap4(self):
     #     if self.addBootstrap():
     #         indexFile = os.path.join(self.getSrcDir(), "index.js")
-    #         # prepend at beginning of file
+    #         # prepend at beginning of fileObj
     #         with open(indexFile, "r+") as f:
     #             content = f.read()
     #             f.seek(0, 0)
@@ -327,29 +326,29 @@ import '../node_modules/jquery/dist/jquery.slim.min.js';
 
     def cleanReactAppDir(self):
         """
-        This method clears the predefined css files and the index.js file. 
-        It replaces each of these files with user created/defined files
+        This method clears the predefined css fileObjs and the index.js fileObj. 
+        It replaces each of these fileObjs with user created/defined fileObjs
 
         Input: void
         Output: void
         """
         
-        # deleting the default CSS and JS files
+        # deleting the default CSS and JS fileObjs
         path = self.getSrcDir()
-        files = os.listdir(path)
+        fileObjs = os.listdir(path)
 
-        for file in files:
-            extension = os.path.splitext(file)[1]
-            # print(extension) # debug
+        for fileObj in fileObjs:
+            extension = os.path.splitext(fileObj)[1]
+            # print extension # debug
 
             if extension in (".css", ".js", ".svg"):
-                filepath = os.path.join(path, file)
-                os.remove(filepath)
+                fileObjpath = os.path.join(path, fileObj)
+                os.remove(fileObjpath)
         
 
-    # def insertCSSToFile(self, filename, css):
+    # def insertCSSToFile(self, fileObjname, css):
     #     """
-    #     This method inserts the css files into the styles directory that will be used by all components of the react application.
+    #     This method inserts the css fileObjs into the styles directory that will be used by all components of the react application.
     #     These will be imported into all the component classes via another method
     #     """
     #     pass
@@ -360,7 +359,7 @@ import '../node_modules/jquery/dist/jquery.slim.min.js';
     def processHTMLEntryPoint(self):
         """
         This method inserts the MathJax CDN into index.html in the react application
-        Uses BeautifulSoup to insert script tags into the index.html file
+        Uses BeautifulSoup to insert script tags into the index.html fileObj
 
         Input: void
         Output: void
@@ -385,16 +384,16 @@ MathJax.Hub.Config({tex2jax: {
 
         html.close()
         
-        # writing new html back to file
+        # writing new html back to fileObj
         newHTML = soup.prettify("utf-8")
-        with open(path, "wb") as file:
-            file.write(newHTML)
+        with open(path, "wb") as fileObj:
+            fileObj.write(newHTML)
         
     
     def getAllComponentImports(self):
-        imports = ''
+        imports = ""
         for component in self._components:
-            None
+            imports += "import { %s } from './components/%s.jsx'\n" %(component, component)
 
 
     # TODO: implement this method
@@ -422,12 +421,12 @@ ReactDOM.render(
 """ %(self.getAllComponentImports(), components)
 
         path = os.path.join(self.getSrcDir(), "index.js")
-        file = open(path, "w")
+        fileObj = open(path, "w")
         bootstrap4 = self.getBootstrapImport()
-        file.write(bootstrap4)
-        file.write(ui)
-        file.flush()
-        file.close()
+        fileObj.write(bootstrap4)
+        fileObj.write(ui)
+        fileObj.flush()
+        fileObj.close()
 
 
 
@@ -443,32 +442,32 @@ def seedFiles(cssFiles):
 
     for css in cssFiles:
         if not os.path.exists(css):
-            file = open(css, "w")
-            file.flush()
-            file.close()
+            fileObj = open(css, "w")
+            fileObj.flush()
+            fileObj.close()
 
 if __name__ == "__main__":
     # try-catch block is to handle the keyboard interrupt exception
     try:
         # commented means it works correctly and has been unit tested
-        # cssFiles = ["main.css", "textbox.css"]
-        # seedFiles(cssFiles)
+        cssFiles = ["main.css", "textbox.css"]
+        seedFiles(cssFiles)
 
         factory = ReactFactory()
-        # factory.testRequirements()
-        # factory.createComponentDir()
-        # factory.createCSSDir()
-        # factory.moveToCssDir(cssFiles)
-        # factory.cleanReactAppDir()
-        # factory.createComponent("TestComponent", "<h1>David</h1>", "", True) # error here
-        # factory.processHTMLEntryPoint()
+        factory.testRequirements()
+        factory.createComponentDir()
+        factory.createCSSDir()
+        factory.moveToCssDir(cssFiles)
+        factory.cleanReactAppDir()
+        factory.createComponent("TestComponent", "<h1>David</h1>", "", True) # error here
+        factory.processHTMLEntryPoint()
         factory.renderToDOM("""
 # <TestComponent>
 #     <NonExistingComponent>Hello, World!</NonExistingComponent>
 # </TestComponent>
 # """)
     except KeyboardInterrupt:
-        print("\n\nCancelling creation of react application...\n")
+        print "\n\nCancelling creation of react application...\n"
         if os.path.exists("jemdoc-website"):
             path = os.path.join(os.getcwd(), "jemdoc-website")
             try:
@@ -476,8 +475,8 @@ if __name__ == "__main__":
             except:
                 os.rmdir(path) 
     except AttributeError as ex:
-        print("Attribute Error...\n")
-        print(ex) 
+        print "Attribute Error...\n"
+        print ex
 
 
 #TODO: fallback to using regular jemdoc in the event of an error at compile time

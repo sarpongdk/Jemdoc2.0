@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 
 """jemdoc version 0.7.3, 2012-11-27."""
 
@@ -26,28 +26,24 @@ import sys
 import os
 import re
 import time
-import tempfile
-
-from io import StringIO
+import StringIO
 from subprocess import *
-from ControlStruct import ControlStruct
-
-
+import tempfile
 
 def info():
   """
   This function prints out system information such as python version, os, if there is equation support or not
   """
-  print(__doc__)
-  print('Platform: ' + sys.platform + '.')
-  print('Python: %s, located at %s.' % (sys.version[:5], sys.executable))
-  print('Equation support: ', end="")
+  print __doc__
+  print 'Platform: ' + sys.platform + '.'
+  print 'Python: %s, located at %s.' % (sys.version[:5], sys.executable)
+  print 'Equation support:',
   (supported, message) = testeqsupport()
   if supported:
-    print('yes.')
+    print 'yes.'
   else:
-    print('no.')
-  print(message)
+    print 'no.'
+  print message
 
 def testeqsupport():
   """
@@ -75,6 +71,42 @@ def testeqsupport():
     msg += '  dvipng: ' + p.stdout.readlines()[0].rstrip() + '.\n'
 
   return (supported, msg[:-1])
+
+"""
+This class is a control sturct class for convenience. It's a wrapper around the input and output files
+"""
+class controlstruct(object):
+  def __init__(self, infile, outfile=None, conf=None, inname=None, eqs=True,
+         eqdir='eqs', eqdpi=130):
+    self.inname = inname #
+    self.inf = infile # input file
+    self.outf = outfile # output file: filename or fileobj?
+    self.conf = conf # configuration file: filename or fileobj?
+    self.linenum = 0
+    self.otherfiles = []
+    self.eqs = eqs # equations support: boolean
+    self.eqdir = eqdir # equations directory
+    self.eqdpi = eqdpi
+    # Default to supporting equations until we know otherwise.
+    self.eqsupport = True
+    self.eqcache = True
+    self.eqpackages = []
+    self.texlines = []
+    self.analytics = None
+    self.eqbd = {} # equation base depth.
+    self.baseline = None
+
+  def pushfile(self, newfile):
+    """
+    This function updates which file is self.inf
+    Treats self.otherfiles as a stack with [0] being top
+    """
+    self.otherfiles.insert(0, self.inf)
+    self.inf = open(newfile, 'rb')
+
+  def nextfile(self):
+    self.inf.close()
+    self.inf = self.otherfiles.pop(0)
 
 def showhelp():
   a = """Usage: jemdoc [OPTIONS] [SOURCEFILE] 
@@ -112,7 +144,7 @@ def showhelp():
     else:
       b += l
 
-  print(b)
+  print b
 
 def standardconf():
   a = """[firstbit]
@@ -294,7 +326,7 @@ def parseconf(cns):
   for f in fs: # for each file object in fs
     # controlstruct(fileObj) wraps fileObj in controlstruct class
     # pc is a method 
-    while pc(ControlStruct(f)) != '': 
+    while pc(controlstruct(f)) != '': 
       l = readnoncomment(f)
       r = re.match(r'\[(.*)\]\n', l)
 
@@ -323,7 +355,7 @@ def insertmenuitems(f, mname, current, prefix):
   f is the controlstruct wrapper class that decorates the output file object
   """
   m = open(mname, 'rb')
-  while pc(ControlStruct(m)) != '':
+  while pc(controlstruct(m)) != '':
     l = readnoncomment(m)
     l = l.strip()
     if l == '':
@@ -555,8 +587,8 @@ def replaceequations(b, f):
         # Check that the tools we need exist.
         (supported, message) = testeqsupport()
         if not supported:
-          print('WARNING: equation support disabled.')
-          print(message)
+          print 'WARNING: equation support disabled.'
+          print message
           f.eqsupport = False
           return b
 
@@ -980,7 +1012,7 @@ def geneq(f, eq, dpi, wl, outname):
       if os.path.exists(eqname) and eqname in eqdepths:
         return (eqdepths[eqname], eqname)
     except IOError:
-      print('eqdepthcache read failed.')
+      print 'eqdepthcache read failed.'
 
   # Open tex file.
   tempdir = tempfile.gettempdir()
@@ -990,7 +1022,7 @@ def geneq(f, eq, dpi, wl, outname):
 
   preamble = '\documentclass{article}\n'
   for p in f.eqpackages:
-    preamble += r'\usepackage{%s}\n' % p
+    preamble += '\usepackage{%s}\n' % p
   for p in f.texlines:
     # Replace \{ and \} in p with { and }.
     # XXX hack.
@@ -1017,7 +1049,7 @@ def geneq(f, eq, dpi, wl, outname):
     rc = p.wait()
     if rc != 0:
       for l in p.stdout.readlines():
-        print('  ' + l.rstrip())
+        print '  ' + l.rstrip()
       exts.remove('.tex')
       raise Exception('latex error')
 
@@ -1027,7 +1059,7 @@ def geneq(f, eq, dpi, wl, outname):
     p = Popen(dvicmd, shell=True, stdout=PIPE, stderr=PIPE)
     rc = p.wait()
     if rc != 0:
-      print(p.stderr.readlines())
+      print p.stderr.readlines()
       raise Exception('dvipng error')
     depth = int(p.stdout.readlines()[-1].split('=')[-1])
   finally:
@@ -1044,7 +1076,7 @@ def geneq(f, eq, dpi, wl, outname):
       dc.write(eqname + ' ' + str(depth) + '\n')
       dc.close()
     except IOError:
-      print('eqdepthcache update failed.')
+      print 'eqdepthcache update failed.'
   return (depth, eqname)
 
 def dashlist(f, ordered=False):
@@ -1184,7 +1216,7 @@ def codeblock(f, g):
   if raw:
     return
   elif ext_prog:
-    print('filtering through %s...' % ext_prog)
+    print 'filtering through %s...' % ext_prog
 
     output,_ = Popen(ext_prog, shell=True, stdin=PIPE,
                      stdout=PIPE).communicate(buff)
@@ -1540,8 +1572,6 @@ def procfile(f):
     # jem: XXX this is where you would intervene to do a fast open/close.
     f.outf.close()
 
-
-
 def main():
   if len(sys.argv) == 1 or sys.argv[1] in ('--help', '-h'):
     # Checking if invalid arguments put or user requests for help\nNum of args: %d\n"
@@ -1552,7 +1582,7 @@ def main():
   # sys.argv[1...n] represent the command line arguments
   if sys.argv[1] == '--show-config':
     # Print the standard configuration used by Jemdoc, i.e., the standard Jemdoc html and exit
-    print(standardconf())
+    print standardconf()
     raise SystemExit
    
   if sys.argv[1] == '--version': # user requests for version
@@ -1560,12 +1590,8 @@ def main():
     info()
     raise SystemExit
 
-  
-  if sys.argv[1] == "--react":
-
-
   # variables for parsing commandline arguments
-    outoverride = False # true if the outputfile has already been overriden
+  outoverride = False # true if the outputfile has already been overriden
   confoverride = False # true if the configuration file has already been overriden
   outname = None # name of the output file
   confnames = [] # one configuration filenames but still uses an array...parses only 1 configuration file from this
@@ -1617,7 +1643,7 @@ def main():
     outfile = open(thisout, 'w')
 
     # create a control struct with the necessary parsed configuration
-    f = ControlStruct(infile, outfile, conf, inname)
+    f = controlstruct(infile, outfile, conf, inname)
     
     
     procfile(f)
@@ -1625,10 +1651,3 @@ def main():
 #
 if __name__ == '__main__':
   main()
-
-# TODO: integrate the react at compile time
-# TODO: Extend the metalanguage to use React at compile time.
-# TODO: Allow rearrangements of elements on the page.
-# TODO: Allow dynamic rendering of lists and images.
-# TODO: Extend the metalanguage to allow use of new JS math expression library
-# TODO: Responsive web design using bootstrap4, when compiling with React.
