@@ -1,0 +1,10 @@
+notes
+jemdoc-website
+*.pyc
+test*
+*.css
+*.html
+*.jsx
+configs*
+example-pages*
+*.bak

@@ -78,11 +78,12 @@ Press ^C \033[91m(Ctrl + C)\033[00m at any time to quit.
 
     def install(self, package):
         try:
+            print "Installing %s" %package
             subprocess.check_output(
-                [sys.executable, "-m", "pip2", "install", package])
+                [sys.executable, "-m", "pip2", "-q", "install", package])
             return True
         except subprocess.CalledProcessError as ex:
-            print "\033[91mWarn\033[00m: BeautifulSoup cannot be installed.\n Creating a non-react jemdoc website..."
+            print "\033[91mWarn\033[00m: %s cannot be installed.\n Creating a non-react jemdoc website..." %package
             return False
 
     def testBS4(self):
@@ -376,8 +377,9 @@ MathJax.Hub.Config({tex2jax: {
     displayMath: [ ["$$","$$"], ["\\[","\\]"] ]
 }});"""
         configTag.append(config)
-        soup.head.append(scriptTag)
         soup.head.append(configTag)
+        soup.head.append(scriptTag)
+
 
         # changing app title
         soup.title.string.replace_with(self._appTitle)
