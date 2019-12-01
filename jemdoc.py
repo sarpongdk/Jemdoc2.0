@@ -1,5 +1,4 @@
 #!/usr/bin/env python2
-
 """jemdoc version 0.7.3, 2012-11-27."""
 
 # Copyright (C) 2007-2012 Jacob Mattingley (jacobm@stanford.edu).
@@ -31,43 +30,11 @@ from subprocess import *
 import tempfile
 
 from commandlineparser import CommandLineParser
-from controlstruct import ControlStruct
-
-def testeqsupport():
-    """
-  This function checks if there is equation support on the user's laptop
-  """
-    supported = True
-    msg = ''
-
-    # use stdout=subprocess.PIPE to save output to variable
-    # use shell=True to execute in shell itself
-    # use stderr=subpreocess.PIPE to save error to variable
-    p = Popen('latex --version', shell=True, stdout=PIPE, stderr=PIPE)
-    rc = p.wait() # wait for process to end
-    if rc != 0: # if status code of child process is not zero, means failure in execution or error
-        msg += '  latex: not found.\n'
-        supported = False
-    else: # else sucessful execution of child process
-        msg += '  latex: ' + p.stdout.readlines()[0].rstrip() + '.\n'
-    p = Popen('dvipng --version', shell=True, stdout=PIPE, stderr=PIPE)
-    rc = p.wait()
-    if rc != 0:
-        msg += '  dvipng: not found.\n'
-        supported = False
-    else:
-        msg += '  dvipng: ' + p.stdout.readlines()[0].rstrip() + '.\n'
-
-    return (supported, msg[:-1])
+from controlstruct import ControlStruct, JandalError
 
 def standardconf():
     return CommandLineParser.getStandardConfig(False)
 
-class JandalError(Exception):
-    pass
-
-class NoEqSupport(Exception):
-    pass
 
 def raisejandal(msg, line=0):
     if line == 0:
@@ -76,14 +43,16 @@ def raisejandal(msg, line=0):
         s = "line %d: %s" % (line, msg)
     raise JandalError(s)
 
+
 def readnoncomment(f):
     l = f.readline()
     if l == '':
         return l
     elif l[0] == '#':
-        return readnoncomment(f) # read next line if current line is a comment
+        return readnoncomment(f)  # read next line if current line is a comment
     else:
-        return l.rstrip() + '\n' # leave just one \n and no spaces etc.
+        return l.rstrip() + '\n'  # leave just one \n and no spaces etc.
+
 
 def parseconf(cns):
     """
@@ -98,11 +67,15 @@ def parseconf(cns):
     syntax = {}
     warn = False
     # manually add the defaults as a file handle.
-    fs = [StringIO.StringIO(standardconf())] # fs represents all the configuration files, including the default configuration file, as file objects
+    fs = [
+        StringIO.StringIO(standardconf())
+    ]  # fs represents all the configuration files, including the default configuration file, as file objects
     for sname in cns:
-        fs.append(open(sname, 'rb')) # opens each configuration file and appends the file object to fs
+        fs.append(
+            open(sname, 'rb')
+        )  # opens each configuration file and appends the file object to fs
 
-    for f in fs: # for each file object in fs
+    for f in fs:  # for each file object in fs
         # ControlStruct(fileObj) wraps fileObj in ControlStruct class
         # pc is a method
         while pc(ControlStruct(f)) != '':
@@ -124,6 +97,7 @@ def parseconf(cns):
 
     return syntax
 
+
 def insertmenuitems(f, mname, current, prefix):
     """
   This function inserts menu items into the output html
@@ -140,9 +114,10 @@ def insertmenuitems(f, mname, current, prefix):
         if l == '':
             continue
 
-        r = re.match(r'\s*(.*?)\s*\[(.*)\]', l) # this matches: one or more spaces followed by
+        r = re.match(r'\s*(.*?)\s*\[(.*)\]',
+                     l)  # this matches: one or more spaces followed by
 
-        if r: # then we have a menu item.
+        if r:  # then we have a menu item.
             link = r.group(2)
             # Don't use prefix if we have an absolute link.
             if '://' not in r.group(2):
@@ -172,13 +147,15 @@ def insertmenuitems(f, mname, current, prefix):
             else:
                 hb(f.outf, f.conf['menuitem'], link, menuitem)
 
-        else: # menu category.
+        else:  # menu category.
             hb(f.outf, f.conf['menucategory'], br(l, f))
 
     m.close()
 
+
 def out(f, s):
     f.write(s)
+
 
 def hb(f, tag, content1, content2=None):
     """Writes out a halfblock (hb)."""
@@ -191,19 +168,21 @@ def hb(f, tag, content1, content2=None):
     else:
         r = re.sub(r'\|1', content1, tag)
         r = re.sub(r'\|2', content2, r)
-        print "hb: %s" %r # debug
         out(f, r)
+
 
 def pc(f, ditchcomments=True):
     """Peeks at next character in the file."""
     # Should only be used to look at the first character of a new line.
-    c = f.inf.read(1) # reads first charactor of input file
-    if c: # only undo forward movement if we're not at the end.
+    c = f.inf.read(1)  # reads first charactor of input file
+    if c:  # only undo forward movement if we're not at the end.
         #
         # if character c is comment symbol and ditchComments is True, read next line with nl(f)
         if ditchcomments and c == '#':
-            l = nl(f) # reads next line
-            if doincludes(f, l): # doincludes(fileObj, line) is a method described below. Checks if user is including external file
+            l = nl(f)  # reads next line
+            if doincludes(
+                    f, l
+            ):  # doincludes(fileObj, line) is a method described below. Checks if user is including external file
                 return "#"
 
         if c in ' \t':
@@ -219,6 +198,7 @@ def pc(f, ditchcomments=True):
 
     return c
 
+
 def doincludes(f, l):
     """
   Input: f = fileObject, l = line
@@ -230,18 +210,21 @@ def doincludes(f, l):
   """
     ir = 'includeraw{'
     i = 'include{'
-    if l.startswith(ir): # if line starts with includeraw{
+    if l.startswith(ir):  # if line starts with includeraw{
         nf = open(l[len(ir):-2], 'rb')
         rawHTML = nf.read()
-        print "%s" % rawHTML # debug
-        f.outf.write(rawHTML) # write the contents of includeraw to the outputfile
+        f.outf.write(
+            rawHTML)  # write the contents of includeraw to the outputfile
         nf.close()
-    elif l.startswith(i): # if line starts with include{
-        f.pushfile(l[len(i):-2]) # switches which file is currently being parsed. makes the include{file} the one to be parsed
+    elif l.startswith(i):  # if line starts with include{
+        f.pushfile(
+            l[len(i):-2]
+        )  # switches which file is currently being parsed. makes the include{file} the one to be parsed
     else:
         return False
 
     return True
+
 
 def nl(f, withcount=False, codemode=False):
     """Get input file line."""
@@ -250,9 +233,9 @@ def nl(f, withcount=False, codemode=False):
   It switches to the next file
   """
     s = f.inf.readline()
-    if not s and f.otherfiles: # if current file has no lines left and there are other files
-        f.nextfile() # switch files
-        return nl(f, withcount, codemode) # perform same algorithm on it
+    if not s and f.otherfiles:  # if current file has no lines left and there are other files
+        f.nextfile()  # switch files
+        return nl(f, withcount, codemode)  # perform same algorithm on it
 
     f.linenum += 1
 
@@ -272,7 +255,7 @@ def nl(f, withcount=False, codemode=False):
         r = re.match('(%s+) ' % m, s)
         if not r:
             raise SyntaxError("couldn't handle the jandal (code 12039) on line"
-                      " %d" % f.linenum)
+                              " %d" % f.linenum)
 
         if not codemode:
             s = s.lstrip('-.=:')
@@ -282,8 +265,9 @@ def nl(f, withcount=False, codemode=False):
         if not codemode:
             s = s.lstrip('-.=:')
 
-        print "nl: %s" %s
+        print "nl: %s" % s
         return s
+
 
 def np(f, withcount=False, eatblanks=True):
     """Gets the next paragraph from the input file."""
@@ -297,13 +281,14 @@ def np(f, withcount=False, eatblanks=True):
         s += nl(f)
 
     while eatblanks and pc(f) == '\n':
-        nl(f) # burn blank line.
+        nl(f)  # burn blank line.
 
     # in both cases, ditch the trailing \n.
     if withcount:
         return (s[:-1], c)
     else:
         return s[:-1]
+
 
 def quote(s):
     """
@@ -313,6 +298,7 @@ def quote(s):
   Return: escaped string s
   """
     return re.sub(r"""[\\*/+"'<>&$%\.~[\]-]""", r'\\\g<0>', s)
+
 
 def replacequoted(b):
     """Quotes {{raw html}} sections."""
@@ -327,6 +313,7 @@ def replacequoted(b):
         m = r.search(b, m.start())
 
     return b
+
 
 def replacepercents(b):
     # replace %sections% as +{{sections}}+. Do not replace if within a link.
@@ -345,78 +332,16 @@ def replacepercents(b):
 
     return b
 
-def replaceequations(b, f):
-    # replace $sections$ and \(sections\) as equations.
-    rs = ((re.compile(r'(?<!\\)\$(.*?)(?<!\\)\$', re.M + re.S), False),
-       (re.compile(r'(?<!\\)\\\((.*?)(?<!\\)\\\)', re.M + re.S), True))
-    for (r, wl) in rs:
-        m = r.search(b)
-        while m:
-            eq = m.group(1)
-            if wl:
-                fn = str(abs(hash(eq + 'wl120930alsdk')))
-            else:
-                fn = str(abs(hash(eq)))
-
-            # Find out the baseline when we first encounter an equation (don't
-            # bother, otherwise).
-            # Other initialization stuff which we do only once we know we have
-            # equations.
-            if f.baseline is None:
-                # See if the eqdir exists, and if not, create it.
-                if not os.path.isdir(f.eqdir):
-                    os.mkdir(f.eqdir)
-
-                # Check that the tools we need exist.
-                (supported, message) = testeqsupport()
-                if not supported:
-                    print 'WARNING: equation support disabled.'
-                    print message
-                    f.eqsupport = False
-                    return b
-
-                # Calculate the baseline.
-                eqt = "0123456789xxxXXxX"
-                (f.baseline, blfn) = geneq(f, eqt, dpi=f.eqdpi, wl=False,
-                               outname='baseline-' + str(f.eqdpi))
-                if os.path.exists(blfn):
-                    os.remove(blfn)
-
-            fn = fn + '-' + str(f.eqdpi)
-            (depth, fullfn) = geneq(f, eq, dpi=f.eqdpi, wl=wl, outname=fn)
-            fullfn = fullfn.replace('\\', '/')
-
-            offset = depth - f.baseline + 1
-
-            eqtext = allreplace(eq)
-            eqtext = eqtext.replace('\\', '')
-            eqtext = eqtext.replace('\n', ' ')
-
-            # Double braces will cause problems with escaping of image tag.
-            eqtext = eqtext.replace('{{', 'DOUBLEOPENBRACE')
-            eqtext = eqtext.replace('}}', 'DOUBLECLOSEBRACE')
-
-            if wl:
-                b = b[:m.start()] + \
-                    '{{\n<div class="eqwl"><img class="eqwl img-fluid" src="%s" alt="%s" />\n<br /></div>}}' % (fullfn, eqtext) + b[m.end():]
-            else:
-                b = b[:m.start()] + \
-                  '{{<figure><img class="eq img-fluid" src="%s" alt="%s" style="vertical-align: -%dpx" /></figure>}}' % (fullfn, eqtext, offset) + b[m.end():]
-
-            # jem: also clean out line breaks in the alttext?
-            m = r.search(b, m.start())
-
-    return replacequoted(b)
-
 def replaceimages(b):
     # works with [img{width}{height}{alttext} location caption].
-    r = re.compile(r'(?<!\\)\[img((?:\{.*?\}){,3})\s(.*?)(?:\s(.*?))?(?<!\\)\]',
-             re.M + re.S)
+    r = re.compile(
+        r'(?<!\\)\[img((?:\{.*?\}){,3})\s(.*?)(?:\s(.*?))?(?<!\\)\]',
+        re.M + re.S)
     m = r.search(b)
     s = re.compile(r'{(.*?)}', re.M + re.S)
     while m:
         m1 = list(s.findall(m.group(1)))
-        m1 += ['']*(3 - len(m1))
+        m1 += [''] * (3 - len(m1))
 
         bits = []
         link = m.group(2).strip()
@@ -439,12 +364,15 @@ def replaceimages(b):
         else:
             bits.append(r'alt=\"\"')
 
-        b = b[:m.start()] + r'<figure><img class="img-fluid" %s /></figure>' % " ".join(bits) + b[m.end():]
+        b = b[:m.start(
+        )] + r'<figure><img class="img-fluid" %s /></figure>' % " ".join(
+            bits) + b[m.end():]
 
         m = r.search(b, m.start())
 
-    print "replacedimage: %s" %b
+    print "replacedimage: %s" % b
     return b
+
 
 def replacelinks(b):
     """
@@ -477,11 +405,13 @@ def replacelinks(b):
             # remove any mailto before labelling.
             linkname = re.sub('^mailto:', '', link)
 
-        b = b[:m.start()] + r'<a href=\"%s\">%s<\/a>' % (link, linkname) + b[m.end():]
+        b = b[:m.start()] + r'<a href=\"%s\">%s<\/a>' % (
+            link, linkname) + b[m.end():]
 
         m = r.search(b, m.start())
 
     return b
+
 
 def br(b, f, tableblock=False):
     """Does simple text replacements on a block of text. ('block replacements')"""
@@ -496,10 +426,6 @@ def br(b, f, tableblock=False):
         else:
             b = re.sub("!\$%s\$!" % m, repl, b)
 
-    # Deal with literal backspaces.
-    if f.eqs and f.eqsupport:
-        b = replaceequations(b, f)
-
     b = re.sub(r'\\\\', 'jemLITerl33talBS', b)
 
     # Deal with {{html embedding}}.
@@ -507,8 +433,8 @@ def br(b, f, tableblock=False):
 
     b = allreplace(b)
 
-    b = b.lstrip('-. \t') # remove leading spaces, tabs, dashes, dots.
-    b = replaceimages(b) # jem not sure if this is still used.
+    b = b.lstrip('-. \t')  # remove leading spaces, tabs, dashes, dots.
+    b = replaceimages(b)  # jem not sure if this is still used.
 
     # Slightly nasty hackery in this next bit.
     b = replacepercents(b)
@@ -615,6 +541,7 @@ def br(b, f, tableblock=False):
 
     return b
 
+
 def allreplace(b):
     """Replacements that should be done on everything."""
     """
@@ -635,6 +562,7 @@ def allreplace(b):
 
     return b
 
+
 def pyint(f, l):
     l = l.rstrip()
     l = allreplace(l)
@@ -647,48 +575,64 @@ def pyint(f, l):
     else:
         out(f, l + '\n')
 
+
 def putbsbs(l):
     for i in range(len(l)):
         l[i] = '\\b' + l[i] + '\\b'
 
     return l
 
+
 def gethl(lang):
     # disable comments by default, by choosing unlikely regex.
-    d = {'strings':False}
+    d = {'strings': False}
     if lang in ('py', 'python'):
-        d['statement'] = ['break', 'continue', 'del', 'except', 'exec',
-                  'finally', 'pass', 'print', 'raise', 'return', 'try',
-                  'with', 'global', 'assert', 'lambda', 'yield', 'def',
-                  'class', 'for', 'while', 'if', 'elif', 'else',
-                  'import', 'from', 'as', 'assert']
-        d['builtin'] = ['True', 'False', 'set', 'open', 'frozenset',
-                'enumerate', 'object', 'hasattr', 'getattr', 'filter',
-                'eval', 'zip', 'vars', 'unicode', 'type', 'str',
-                'repr', 'round', 'range', 'and', 'in', 'is', 'not',
-                'or']
-        d['special'] = ['cols', 'optvar', 'param', 'problem', 'norm2', 'norm1',
-                'value', 'minimize', 'maximize', 'rows', 'rand',
-                'randn', 'printval', 'matrix']
-        d['error'] = ['\w*Error',]
+        d['statement'] = [
+            'break', 'continue', 'del', 'except', 'exec', 'finally', 'pass',
+            'print', 'raise', 'return', 'try', 'with', 'global', 'assert',
+            'lambda', 'yield', 'def', 'class', 'for', 'while', 'if', 'elif',
+            'else', 'import', 'from', 'as', 'assert'
+        ]
+        d['builtin'] = [
+            'True', 'False', 'set', 'open', 'frozenset', 'enumerate', 'object',
+            'hasattr', 'getattr', 'filter', 'eval', 'zip', 'vars', 'unicode',
+            'type', 'str', 'repr', 'round', 'range', 'and', 'in', 'is', 'not',
+            'or'
+        ]
+        d['special'] = [
+            'cols', 'optvar', 'param', 'problem', 'norm2', 'norm1', 'value',
+            'minimize', 'maximize', 'rows', 'rand', 'randn', 'printval',
+            'matrix'
+        ]
+        d['error'] = [
+            '\w*Error',
+        ]
         d['commentuntilend'] = '#'
         d['strings'] = True
     elif lang in ['c', 'c++', 'cpp']:
         d['statement'] = ['if', 'else', 'printf', 'return', 'for']
-        d['builtin'] = ['static', 'typedef', 'int', 'float', 'double', 'void',
-                'clock_t', 'struct', 'long', 'extern', 'char']
-        d['operator'] = ['#include.*', '#define', '@pyval{', '}@', '@pyif{',
-                 '@py{']
-        d['error'] = ['\w*Error',]
+        d['builtin'] = [
+            'static', 'typedef', 'int', 'float', 'double', 'void', 'clock_t',
+            'struct', 'long', 'extern', 'char'
+        ]
+        d['operator'] = [
+            '#include.*', '#define', '@pyval{', '}@', '@pyif{', '@py{'
+        ]
+        d['error'] = [
+            '\w*Error',
+        ]
         d['commentuntilend'] = ['//', '/*', ' * ', '*/']
     elif lang in ('rb', 'ruby'):
-        d['statement'] = putbsbs(['while', 'until', 'unless', 'if', 'elsif',
-                      'when', 'then', 'else', 'end', 'begin',
-                      'rescue', 'class', 'def'])
+        d['statement'] = putbsbs([
+            'while', 'until', 'unless', 'if', 'elsif', 'when', 'then', 'else',
+            'end', 'begin', 'rescue', 'class', 'def'
+        ])
         d['operator'] = putbsbs(['and', 'not', 'or'])
         d['builtin'] = putbsbs(['true', 'false', 'require', 'warn'])
         d['special'] = putbsbs(['IO'])
-        d['error'] = putbsbs(['\w*Error',])
+        d['error'] = putbsbs([
+            '\w*Error',
+        ])
         d['commentuntilend'] = '#'
         d['strings'] = True
         d['strings'] = True
@@ -696,22 +640,37 @@ def gethl(lang):
             d['builtin'] += ['bool', 'virtual']
             d['statement'] += ['new', 'delete']
             d['operator'] += ['&lt;&lt;', '&gt;&gt;']
-            d['special'] = ['public', 'private', 'protected', 'template',
-                    'ASSERT']
+            d['special'] = [
+                'public', 'private', 'protected', 'template', 'ASSERT'
+            ]
     elif lang == 'sh':
-        d['statement'] = ['cd', 'ls', 'sudo', 'cat', 'alias', 'for', 'do',
-                  'done', 'in', ]
-        d['operator'] = ['&gt;', r'\\', r'\|', ';', '2&gt;', 'monolith&gt;',
-                 'kiwi&gt;', 'ant&gt;', 'kakapo&gt;', 'client&gt;']
-        d['builtin'] = putbsbs(['gem', 'gcc', 'python', 'curl', 'wget', 'ssh',
-                    'latex', 'find', 'sed', 'gs', 'grep', 'tee',
-                    'gzip', 'killall', 'echo', 'touch',
-                    'ifconfig', 'git', '(?<!\.)tar(?!\.)'])
+        d['statement'] = [
+            'cd',
+            'ls',
+            'sudo',
+            'cat',
+            'alias',
+            'for',
+            'do',
+            'done',
+            'in',
+        ]
+        d['operator'] = [
+            '&gt;', r'\\', r'\|', ';', '2&gt;', 'monolith&gt;', 'kiwi&gt;',
+            'ant&gt;', 'kakapo&gt;', 'client&gt;'
+        ]
+        d['builtin'] = putbsbs([
+            'gem', 'gcc', 'python', 'curl', 'wget', 'ssh', 'latex', 'find',
+            'sed', 'gs', 'grep', 'tee', 'gzip', 'killall', 'echo', 'touch',
+            'ifconfig', 'git', '(?<!\.)tar(?!\.)'
+        ])
         d['commentuntilend'] = '#'
         d['strings'] = True
     elif lang == 'matlab':
-        d['statement'] = putbsbs(['max', 'min', 'find', 'rand', 'cumsum', 'randn', 'help',
-                         'error', 'if', 'end', 'for'])
+        d['statement'] = putbsbs([
+            'max', 'min', 'find', 'rand', 'cumsum', 'randn', 'help', 'error',
+            'if', 'end', 'for'
+        ])
         d['operator'] = ['&gt;', 'ans =', '>>', '~', '\.\.\.']
         d['builtin'] = putbsbs(['csolve'])
         d['commentuntilend'] = '%'
@@ -725,6 +684,7 @@ def gethl(lang):
             d[x] = putbsbs(d[x])
 
     return d
+
 
 def language(f, l, hl):
     l = l.rstrip()
@@ -765,13 +725,13 @@ def language(f, l, hl):
                 if l.strip().startswith(x):
                     hb(f, '<span class="comment">|</span>\n', allreplace(l))
                     return
-                if '//' in cue: # Handle this separately.
+                if '//' in cue:  # Handle this separately.
                     r = re.compile(r'\/\/.*')
                     l = r.sub(r'<span class="comment">\g<0></span>', l)
-        elif cue == '#': # Handle this separately.
+        elif cue == '#':  # Handle this separately.
             r = re.compile(r'#.*')
             l = r.sub(r'<span class="comment">\g<0></span>', l)
-        elif cue == '%': # Handle this separately.
+        elif cue == '%':  # Handle this separately.
             r = re.compile(r'%.*')
             l = r.sub(r'<span class="comment">\g<0></span>', l)
         elif l.strip().startswith(cue):
@@ -779,89 +739,6 @@ def language(f, l, hl):
             return
 
     out(f, l + '\n')
-
-def geneq(f, eq, dpi, wl, outname):
-    # First check if there is an existing file.
-    eqname = os.path.join(f.eqdir, outname + '.png')
-
-    eqdepths = {}
-    if f.eqcache:
-        try:
-            dc = open(os.path.join(f.eqdir, '.eqdepthcache'), 'rb')
-            for l in dc:
-                a = l.split()
-                eqdepths[a[0]] = int(a[1])
-            dc.close()
-
-            if os.path.exists(eqname) and eqname in eqdepths:
-                return (eqdepths[eqname], eqname)
-        except IOError:
-            print 'eqdepthcache read failed.'
-
-    # Open tex file.
-    tempdir = tempfile.gettempdir()
-    fd, texfile = tempfile.mkstemp('.tex', '', tempdir, True)
-    basefile = texfile[:-4]
-    g = os.fdopen(fd, 'wb')
-
-    preamble = '\documentclass{article}\n'
-    for p in f.eqpackages:
-        preamble += '\usepackage{%s}\n' % p
-    for p in f.texlines:
-        # Replace \{ and \} in p with { and }.
-        # XXX hack.
-        preamble += re.sub(r'\\(?=[{}])', '', p + '\n')
-    preamble += '\pagestyle{empty}\n\\begin{document}\n'
-    g.write(preamble)
-
-    # Write the equation itself.
-    if wl:
-        g.write('\\[%s\\]' % eq)
-    else:
-        g.write('$%s$' % eq)
-
-    # Finish off the tex file.
-    g.write('\n\\newpage\n\end{document}')
-    g.close()
-
-    exts = ['.tex', '.aux', '.dvi', '.log']
-    try:
-        # Generate the DVI file
-        latexcmd = 'latex -file-line-error-style -interaction=nonstopmode ' + \
-             '-output-directory %s %s' % (tempdir, texfile)
-        p = Popen(latexcmd, shell=True, stdout=PIPE)
-        rc = p.wait()
-        if rc != 0:
-            for l in p.stdout.readlines():
-                print '  ' + l.rstrip()
-            exts.remove('.tex')
-            raise Exception('latex error')
-
-        dvifile = basefile + '.dvi'
-        dvicmd = 'dvipng --freetype0 -Q 9 -z 3 --depth -q -T tight -D %i -bg Transparent -o %s %s' % (dpi, eqname, dvifile)
-        # discard warnings, as well.
-        p = Popen(dvicmd, shell=True, stdout=PIPE, stderr=PIPE)
-        rc = p.wait()
-        if rc != 0:
-            print p.stderr.readlines()
-            raise Exception('dvipng error')
-        depth = int(p.stdout.readlines()[-1].split('=')[-1])
-    finally:
-        # Clean up.
-        for ext in exts:
-            g = basefile + ext
-            if os.path.exists(g):
-                os.remove(g)
-
-    # Update the cache if we're using it.
-    if f.eqcache and eqname not in eqdepths:
-        try:
-            dc = open(os.path.join(f.eqdir, '.eqdepthcache'), 'ab')
-            dc.write(eqname + ' ' + str(depth) + '\n')
-            dc.close()
-        except IOError:
-            print 'eqdepthcache update failed.'
-    return (depth, eqname)
 
 def dashlist(f, ordered=False):
     level = 0
@@ -900,6 +777,7 @@ def dashlist(f, ordered=False):
     for i in range(level):
         out(f.outf, '\n</li>\n</%s>\n' % ul)
 
+
 def colonlist(f):
     out(f.outf, '<dl>\n')
     while pc(f) == ':':
@@ -909,7 +787,7 @@ def colonlist(f):
 
         if not g or len(g.groups()) != 2:
             raise SyntaxError("couldn't handle the jandal (invalid deflist "
-                     "format) on line %d" % f.linenum)
+                              "format) on line %d" % f.linenum)
         # split into definition / non-definition part.
         defpart = g.group(1)
         rest = g.group(2)
@@ -918,6 +796,7 @@ def colonlist(f):
         hb(f.outf, '<dd><p>|</p></dd>\n', br(rest, f))
 
     out(f.outf, '</dl>\n')
+
 
 def codeblock(f, g):
     if g[1] == 'raw':
@@ -942,7 +821,7 @@ def codeblock(f, g):
     # Now we are handling code.
     # Handle \~ and ~ differently.
     stringmode = False
-    while 1: # wait for EOF.
+    while 1:  # wait for EOF.
         l = nl(f, codemode=True)
         if not l:
             break
@@ -987,7 +866,8 @@ def codeblock(f, g):
                         else:
                             out(f.outf, l)
             else:
-                if l.startswith('\\#include{') or l.startswith('\\#includeraw{'):
+                if l.startswith('\\#include{') or l.startswith(
+                        '\\#includeraw{'):
                     out(f.outf, l[1:])
                 elif l.startswith('#') and doincludes(f, l[1:]):
                     continue
@@ -1002,8 +882,8 @@ def codeblock(f, g):
     elif ext_prog:
         print 'filtering through %s...' % ext_prog
 
-        output,_ = Popen(ext_prog, shell=True, stdin=PIPE,
-                         stdout=PIPE).communicate(buff)
+        output, _ = Popen(ext_prog, shell=True, stdin=PIPE,
+                          stdout=PIPE).communicate(buff)
         out(f.outf, output)
     else:
         if g[1] == 'jemdoc':
@@ -1011,9 +891,11 @@ def codeblock(f, g):
         else:
             out(f.outf, f.conf['codeblockend'])
 
+
 def prependnbsps(l):
     g = re.search('(^ *)(.*)', l).groups()
     return g[0].replace(' ', '&nbsp;') + g[1]
+
 
 def inserttitle(f, t):
     if t is not None:
@@ -1025,10 +907,7 @@ def inserttitle(f, t):
 
         hb(f.outf, f.conf['doctitleend'], t)
 
-"""
-This is where everything ties together. The html document is then parsed from top to bottom using all the functions
-"""
-def procfile(f):
+def procfile(f, cliparser):
     f.linenum = 0
 
     menu = None
@@ -1044,18 +923,14 @@ def procfile(f):
     js = []
     title = None
 
-    print pc(f, False) # debug
     while pc(f, False) == '#':
         l = f.inf.readline()
-        print l # debug
 
         f.linenum += 1
         if doincludes(f, l[1:]):
-            print "doincludes" # debug
             continue
         if l.startswith('# jemdoc:'):
             l = l[len('# jemdoc:'):]
-            print l # debug
             a = l.split(',')
             # jem only handle one argument for now.
             for b in a:
@@ -1064,15 +939,18 @@ def procfile(f):
                     sidemenu = True
                     r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
                     g = re.findall(r, b)
-                    print "Menu: %s" %g # debug
                     if len(g) > 3 or len(g) < 2:
-                        raise SyntaxError('sidemenu error on line %d' % f.linenum)
-
+                        raise SyntaxError('sidemenu error on line %d' %
+                                          f.linenum)
                     if len(g) == 2:
                         menu = (f, g[0], g[1], '')
                     else:
                         menu = (f, g[0], g[1], g[2])
-                    print menu # debug
+
+                elif b.startswith('nav'):
+                    # TODO: parse nav
+                    nav = True
+                    pass
 
                 elif b.startswith('nofooter'):
                     showfooter = False
@@ -1094,66 +972,35 @@ def procfile(f):
 
                 elif b.startswith('addcss'):
                     r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
-                    cssFiles = re.findall(r, b) # debug
-                    print "Add CSS: %s" %cssFiles # debug
-                    css += cssFiles
+                    cssFiles = re.findall(r, b)  
+                    css.extend(cssFiles)
 
                 elif b.startswith('addjs'):
                     r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
                     jsFiles = re.findall(r, b)
-                    print "Add js: %s" %jsFiles # debug
-                    js += jsFiles
-
-                elif b.startswith('addpackage'):
-                    r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
-                    f.eqpackages += re.findall(r, b)
+                    js.extend(jsFiles)
 
                 elif b.startswith('addtex'):
                     r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
-                    textLines = re.findall(r, b) # debug
-                    print "Add tex: %s" %textLines # debug
+                    textLines = re.findall(r, b) 
                     f.texlines += textLines
 
                 elif b.startswith('analytics'):
                     r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
-                    analytics = re.findall(r, b)[0] # debug
-                    print "Analytics: %s" %analytics # debug
+                    analytics = re.findall(r, b)[0]  
                     f.analytics = analytics
 
                 elif b.startswith('title'):
                     r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
                     g = re.findall(r, b)
-                    print "Title: %s" %g # debug
                     if len(g) != 1:
-                        raise SyntaxError('addtitle error on line %d' % f.linenum)
+                        raise SyntaxError('addtitle error on line %d' %
+                                          f.linenum)
 
                     title = g[0]
 
-                elif b.startswith('noeqs'):
-                    f.eqs = False
-
-                elif b.startswith('noeqcache'):
-                    f.eqcache = False
-
-                elif b.startswith('eqsize'):
-                    r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
-                    g = re.findall(r, b)
-                    if len(g) != 1:
-                        raise SyntaxError('eqsize error on line %d' % f.linenum)
-
-                    f.eqdpi = int(g[0])
-
-                elif b.startswith('eqdir'):
-                    r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
-                    g = re.findall(r, b)
-                    if len(g) != 1:
-                        raise SyntaxError('eqdir error on line %d' % f.linenum)
-
-                    f.eqdir = g[0]
-
     # Get the file started with the firstbit.
     # writing the first bit to the output file
-    print "Firstbit:\n%s" %f.conf['firstbit'] # debug
     out(f.outf, f.conf['firstbit'])
 
     # writing default css link tag to output file
@@ -1161,20 +1008,30 @@ def procfile(f):
         out(f.outf, f.conf['defaultcss'])
 
     # Add per-file css lines here.
-    for i in range(len(css)):
-        if '.css' not in css[i]:
-            css[i] += '.css'
+    extension = '.' + cliparser.getCssStyle()
+    invalidCSS = []
+    for cssFile in css:
+        # TODO: compile with corresponding css engine
+        outCssfile = os.path.splitext(cssFile)[0] + '.css'
+        cssEngine = cliparser.getCssEngine()
+        if cssFile.endswith(extension):
+            compiled = CommandLineParser.compileToCss(cssEngine, cssFile, outCssfile)
+            if not compiled:
+                invalidCSS.append(cssFile)
+        elif '.css' not in cssFile:
+            cssFile += '.css'
 
     # writing the CSS html link tags to the output file
-    for x in css:
-        hb(f.outf, f.conf['specificcss'], x)
+    for cssFile in css:
+        if cssFile not in invalidCSS:
+            hb(f.outf, f.conf['specificcss'], cssFile)
 
     # writing the JS html script tags to the output file
-    for x in js:
-        hb(f.outf, f.conf['specificjs'], x)
+    for jsFile in js:
+        hb(f.outf, f.conf['specificjs'], jsFile)
 
     # Look for a title.
-    if pc(f) == '=': # don't check exact number f.outf '=' here jem.
+    if pc(f) == '=':  # don't check exact number f.outf '=' here jem.
         t = br(nl(f), f)[:-1]
         if title is None:
             title = re.sub(' *(<br />)|(&nbsp;) *', ' ', t)
@@ -1186,21 +1043,19 @@ def procfile(f):
 
     out(f.outf, f.conf['bodystart'])
 
-
     if f.analytics:
         hb(f.outf, f.conf['analytics'], f.analytics)
-
 
     if fwtitle:
         out(f.outf, f.conf['fwtitlestart'])
         inserttitle(f, t)
         out(f.outf, f.conf['fwtitleend'])
 
+    # TODO: complete navbar
     if nav:
         out(f.outf, f.conf['nav'])
     else:
         out(f.outf, f.conf['nonav'])
-
 
     if menu:
         out(f.outf, f.conf['menustart'])
@@ -1215,7 +1070,7 @@ def procfile(f):
     infoblock = False
     imgblock = False
     tableblock = False
-    while 1: # wait for EOF.
+    while 1:  # wait for EOF.
         p = pc(f)
 
         if p == '':
@@ -1272,7 +1127,7 @@ def procfile(f):
                 nl(f)
                 continue
             elif imgblock:
-                out(f.outf, '</td></tr></table>\n')
+                out(f.outf, '</figure>\n')
                 imgblock = False
                 nl(f)
                 continue
@@ -1293,14 +1148,12 @@ def procfile(f):
                 if len(g) >= 1:
                     g[0] = br(g[0], f)
 
-                if len(g) in (0, 1): # info block.
-                    print "Info block: %s" %f.conf['infoblock'] # debug
+                if len(g) in (0, 1):  # info block.
                     out(f.outf, f.conf['infoblock'])
                     infoblock = True
 
-                    if len(g) == 1: # info block.
+                    if len(g) == 1:  # info block.
                         hb(f.outf, f.conf['blocktitle'], g[0])
-                    print "Info block: %s" %f.conf['infoblockcontent'] # debug
                     out(f.outf, f.conf['infoblockcontent'])
 
                 elif len(g) >= 2 and g[1] == 'table':
@@ -1311,8 +1164,8 @@ def procfile(f):
                     name = ''
                     if len(g) >= 3 and g[2]:
                         name += ' id="%s"' % g[2]
-                    print '<table%s>\n<tr class="r1"><td class="c1">' % name # debug
-                    out(f.outf, '<table%s>\n<tr class="r1"><td class="c1">' % name)
+                    out(f.outf,
+                        '<table%s>\n<tr class="r1"><td class="c1">' % name)
                     f.tablerow = 1
                     f.tablecol = 1
 
@@ -1324,7 +1177,7 @@ def procfile(f):
                 elif len(g) >= 4 and g[1] == 'img_left':
                     # handles
                     # {}{img_left}{source}{alttext}{width}{height}{linktarget}.
-                    g += ['']*(7 - len(g))
+                    g += [''] * (7 - len(g))
 
                     if g[4].isdigit():
                         g[4] += 'px'
@@ -1343,7 +1196,6 @@ def procfile(f):
                         out(f.outf, ' height="%s"' % g[5])
                     if g[6]:
                         out(f.outf, '</a>')
-                    out(f.outf, '</figure>')
                     imgblock = True
 
                 else:
@@ -1382,23 +1234,27 @@ def procfile(f):
         # jem: XXX this is where you would intervene to do a fast open/close.
         f.outf.close()
 
+
 def main():
-    parser = CommandLineParser()
-    if parser.showConfig():
-        parser.displayConfig()
+    cliparser = CommandLineParser()
+    if cliparser.showConfig():
+        cliparser.displayConfig()
 
-    if parser.showInfo():
-        parser.displayInfo()
+    if cliparser.showInfo():
+        cliparser.displayInfo()
 
-    parser.installCssEngine()
+    cliparser.installCssEngine()
+    cssEngine = cliparser.getCssEngine()
 
     confnames = []
-    innames = parser.getInputFiles()
-    outdirname = parser.getOutputDir()
-    if parser.getUserConfig():
-        confnames.append(parser.getUserConfig())
-    
-    conf = parseconf(confnames) # this function parses the configuration filenames in the list and returns config files
+    innames = cliparser.getInputFiles()
+    outdirname = cliparser.getOutputDir()
+    if cliparser.getUserConfig():
+        confnames.append(cliparser.getUserConfig())
+
+    conf = parseconf(
+        confnames
+    )  # this function parses the configuration filenames in the list and returns config files
 
     # TODO: verify this
     # if outdirname is not None and not os.path.isdir(outdirname) and len(innames) > 1:
@@ -1421,8 +1277,8 @@ def main():
         # create a control struct with the necessary parsed configuration
         f = ControlStruct(infile, outfile, conf, inname)
 
+        procfile(f, cliparser)
 
-        procfile(f)
 
 #
 if __name__ == '__main__':

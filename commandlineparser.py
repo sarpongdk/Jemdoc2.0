@@ -77,7 +77,7 @@ class CommandLineParser():
         return self._args.input
 
     def _checkOutputDir(self, outdir):
-        if not os.path.isdir(outdir):
+        if os.path.isfile(outdir):
             raise argparse.ArgumentTypeError(
                 "output directory name '{}' is not a directory, please give a directory!"
                 .format(outdir))
@@ -98,6 +98,7 @@ class CommandLineParser():
                     "Duplicate directory name '{}'".format(outdir))
         else:
             os.mkdir(outdir)
+        return outdir
 
     def getOutputDir(self):
         if self._args.outdir:
@@ -147,6 +148,7 @@ class CommandLineParser():
             raise argparse.ArgumentTypeError(
                 "css engine '{}' is not supported".format(engine))
         self._engine = engineName
+        return engineName
 
     def installCssEngine(self):
         engine = self._args.cssEngine
@@ -160,17 +162,22 @@ class CommandLineParser():
     def getCssEngine(self):
         return self._engine
 
+    def getCssStyle(self):
+        return self._args.cssEngine.lower()
+
+    @staticmethod
     def compileToCss(self, engine, inputfile, outputfile):
         if not os.path.exists(inputfile):
             print "\033[91mWarn\033[00m: %s does not exist in current directory, cannot be used!"
-            return
+            return False
 
         try:
             out = os.path.join(os.getcwd(), outputfile)
             cmd = "{} {} {}".format(engine, inputfile, out)
             out = subprocess.check_output(cmd, shell=True)
+            return True
         except subprocess.CalledProcessError as ex:
-            print ex
+            print "\033[91mWarn\033[00m: {}".format(str(ex).lower())
             sys.exit(1)
 
     def _checkFileExists(self, file):
@@ -195,14 +202,16 @@ class CommandLineParser():
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <script type="text/x-mathjax-config">
   MathJax.Hub.Config({
-  tex2jax: {
-    inlineMath: [['$','$'], ['-\\(','$\\)-']],
-    displayMath: [['$$','$$'], ['-$\\[','$\\]-']]
-  }
+    tex2jax: {
+      inlineMath: [['$','$'], ['\\(','$\\)']],
+      displayMath: [['$$','$$'], ['$\\[','$\\]']]
+    },
+    TeX: { 
+      extensions: ["AMScd.js", "action.js", "autobold.js", "cancel.js", "begingroup.js", "color.js", "enclose.js"] 
+    }
   });
   </script>
   <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_CHTML"></script>
-  <script src="https://kit.fontawesome.com/8c138f3e04.js" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
   
   [defaultcss]
@@ -271,18 +280,14 @@ class CommandLineParser():
   <ul class="nav nav-pills flex-column">
   
   [menuend]
-  <!-- End of side menu -->
   </ul>
   </aside>
-  <!-- Main body -->
   <div class="col-12 col-md-9" id="main-content">
   
   [menucategory]
-  <!-- Menu Category -->
   <div class="menu-category">|</div>
 
   [menuitem]
-  <! -- Menu Item -->
   <li class="nav-item menu-item"><a href="|1" class="nav-link">|2</a></li>
 
   [specificcss]
@@ -350,18 +355,6 @@ class CommandLineParser():
   
   [lastupdated]
   Page generated |, by <a href="http://jemdoc.jaboc.net/">jemdoc</a>.
-  
-  [rowstart]
-  <div class="row">
-
-  [rowend]
-  </div>
-
-  [colstart]
-  <div class="col-|1-|2">
-
-  [colend]
-  </div>
 
   [formstart]
   <form method="|1" action="|2">

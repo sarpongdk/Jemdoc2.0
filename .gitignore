@@ -8,3 +8,4 @@ test*
 configs*
 example-pages*
 *.bak
+.vscode
