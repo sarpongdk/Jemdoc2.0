@@ -9,3 +9,4 @@ configs*
 example-pages*
 *.bak
 .vscode
+example*

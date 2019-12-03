@@ -265,7 +265,6 @@ def nl(f, withcount=False, codemode=False):
         if not codemode:
             s = s.lstrip('-.=:')
 
-        print "nl: %s" % s
         return s
 
 
@@ -369,8 +368,6 @@ def replaceimages(b):
             bits) + b[m.end():]
 
         m = r.search(b, m.start())
-
-    print "replacedimage: %s" % b
     return b
 
 
@@ -385,8 +382,7 @@ def replacelinks(b):
     while m:
         m1 = m.group(1).strip()
 
-        if '@' in m1 and not m1.startswith('mailto:') and not \
-           m1.startswith('http://'):
+        if '@' in m1 and not m1.startswith('mailto:') and not m1.startswith('http://'):
             link = 'mailto:' + m1
         else:
             link = m1
@@ -907,10 +903,61 @@ def inserttitle(f, t):
 
         hb(f.outf, f.conf['doctitleend'], t)
 
+
+def insertnavbaritems(f, mname, current, prefix):
+    """
+  This function inserts navbar items into the navbar html
+  
+  mname is the filename of the menu file
+  current is the 
+  prefix is the
+  """
+    m = open(mname, 'rb')
+    while pc(ControlStruct(m)) != '':
+        l = readnoncomment(m)
+        l = l.strip()
+        if l == '':
+            continue
+
+        r = re.match(r'\s*(.*?)\s*\[(.*)\]',
+                     l)  # this matches: one or more spaces followed by
+
+        if r:  # then we have a menu item.
+            link = r.group(2)
+            # Don't use prefix if we have an absolute link.
+            if '://' not in r.group(2):
+                link = prefix + allreplace(link)
+
+            # replace spaces with nbsps.
+            # do do this, even though css would make it work - ie ignores.
+            # only replace spaces that aren't in {{ blocks.
+            in_quote = False
+            navitem = ""
+            for group in re.split(r'({{|}})', r.group(1)):
+                if in_quote:
+                    if group == '}}':
+                        in_quote = False
+                        next
+                    else:
+                        navitem += group
+                else:
+                    if group == '{{':
+                        in_quote = True
+                        next
+                    else:
+                        navitem += br(re.sub(r'(?<!\\n) +', '~', group), f)
+
+            if link[-len(current):] == current:
+                hb(f.outf, f.conf['currentnavitem'], link, menuitem)
+            else:
+                hb(f.outf, f.conf['navitem'], link, navitem)
+    m.close()
+
 def procfile(f, cliparser):
     f.linenum = 0
 
     menu = None
+    navbar = None
     # convert these to a dictionary.
     showfooter = True
     showsourcelink = False
@@ -950,7 +997,15 @@ def procfile(f, cliparser):
                 elif b.startswith('nav'):
                     # TODO: parse nav
                     nav = True
-                    pass
+                    r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
+                    g = re.findall(r, b)
+                    if len(g) > 3 or len(g) < 2:
+                        raise SyntaxError('navbar error on line %d' %
+                                          f.linenum)
+                    if len(g) == 2:
+                        navbar = (f, g[0], g[1], '')
+                    else:
+                        navbar = (f, g[0], g[1], g[2])
 
                 elif b.startswith('nofooter'):
                     showfooter = False
@@ -1051,18 +1106,20 @@ def procfile(f, cliparser):
         inserttitle(f, t)
         out(f.outf, f.conf['fwtitleend'])
 
-    # TODO: complete navbar
-    if nav:
-        out(f.outf, f.conf['nav'])
-    else:
-        out(f.outf, f.conf['nonav'])
-
     if menu:
         out(f.outf, f.conf['menustart'])
         insertmenuitems(*menu)
         out(f.outf, f.conf['menuend'])
     else:
         out(f.outf, f.conf['nomenu'])
+
+    # TODO: Complete navbar 
+    if navbar:
+        out(f.outf, f.conf['navstart'])
+        insertnavbaritems(*navbar)
+        out(f.outf, f.conf['navend'])
+    else:
+        out(f.outf, f.conf['nonav'])
 
     if not fwtitle:
         inserttitle(f, t)
@@ -1075,24 +1132,6 @@ def procfile(f, cliparser):
 
         if p == '':
             break
-
-        elif p == '\\(':
-            if not (f.eqs and f.eqsupport):
-                break
-
-            s = nl(f)
-            # Quickly pull out the equation here:
-            # Check we don't already have the terminating character in a whole-line
-            # equation without linebreaks, eg \( Ax=b \):
-            if not s.strip().endswith('\)'):
-                while True:
-                    l = nl(f, codemode=True)
-                    if not l:
-                        break
-                    s += l
-                    if l.strip() == '\)':
-                        break
-            out(f.outf, br(s.strip(), f))
 
         # look for lists.
         elif p == '-':
@@ -1197,9 +1236,98 @@ def procfile(f, cliparser):
                     if g[6]:
                         out(f.outf, '</a>')
                     imgblock = True
+                
+                # TODO: handle video
+                elif len(g) >= 2 and 'video' in g[1]:
+                    # {}{video}{width}{height}{source}{source}...
+                    videoTag = '<video'
+                    if 'c' in g[1]:
+                        videoTag += ' controls'
+                    
+                    if 'a' in g[1]:
+                        videoTag += ' autoplay'
+                    
+                    if 'l' in g[1]:
+                        videoTag += ' loop'
+
+                    start = 2
+                    if g[2].isdigit():
+                        g[2] += 'px'
+                        videoTag += ' width="%s"' %g[2]
+                        start = 3
+
+                    if g[3].isdigit():
+                        g[3] += 'px'
+                        videoTag += ' height="%s"' %g[3]
+                        start = 4
+
+                    videoTag += '>\n'
+                    out(f.outf, videoTag)
+
+                    for i in range(start, len(g)):
+                        if g[i]:
+                            source = g[i]
+                            ext = os.path.splitext(g[i])[1]
+                            srcTag = '<source src=%s type=video/%s />\n' %(source, ext)
+                            out(f.out, srcTag)
+                        else:
+                            # user did not provide source and so we consider it to be the end of it
+                            break
+                    out(f.out, '<em>Sorry, your browser <strong>does not</strong> support the embedded videos.</em>')
+                    out(f.outf, '</video>\n')
+
+                # TODO: handle audio
+                elif len(g) >= 2 and 'audio' in g[1]:
+                    # {}{audio}{source}{source}...
+                    audioTag = '<audio'
+                    if 'c' in g[1]:
+                        audioTag += ' controls'
+                    
+                    if 'a' in g[1]:
+                        audioTag += ' autoplay'
+                    
+                    if 'l' in g[1]:
+                        audioTag += ' loop'
+                    audioTag += '>\n'
+                    out(f.outf, audioTag)
+
+                    for i in range(2, len(g)):
+                        if g[i]:
+                            source = g[i]
+                            ext = os.path.splitext(g[i])[1]
+                            srcTag = '<source src=%s type=audio/%s />\n' %(source, ext)
+                            out(f.out, srcTag)
+                        else:
+                            # user did not provide source and so we consider it to be the end of it
+                            break
+                    out(f.out, '<em>Sorry, your browser <strong>does not</strong> support embedded audios.</em>')
+                    out(f.outf, '</audio>\n')
+                
+                # TODO: handle forms
+                elif len(g) >= 2 and g[1] == 'fs' or g[1] == 'FS':
+                    # {}{fs}{action}{method}{name}
+                    g += [''] * (7 - len(g))
+                    
+                    if not g[2]:
+                        raisejandal("cannot create form with action provided: {fs}{action}", f.linenum)
+                    out(f.out, '<form action="%s"' %g[2])
+                    
+                    if g[3]:
+                        out(f.outf, ' method="%s"' %g[3]
+                    else:
+                        out(f.outf, ' method="GET"')
+ 
+                    if 'v' in g[1] or 'V' in g[1]:
+                        out(f.outf, ' novalidate')
+                    # introduced new form block variable for creation of forms
+                    out(f.out, '>\n')
+
+                elif len(g) == 2 and g[1] == 'fe' or g[1] == 'FE':
+                    # {}{fe}
+                    out(f.out, '</form>\n')                
 
                 else:
-                    raise JandalError("couldn't handle block", f.linenum)
+                    raisejandal("couldn't handle block", f.linenum)
 
         else:
             s = br(np(f), f, tableblock)
@@ -1283,6 +1411,25 @@ def main():
 #
 if __name__ == '__main__':
     main()
+
+
+"""
+TODO:
+1. Test that the css preprocessor works perfectly
+2. Create a navbar based on the user MENU file given the navbar option
+3. Add a video tag to the meta language that follows the following syntax: {video}{src}{src} 1 video and remaining are sources
+4. Repeat 3 for audio tags
+5. Create a form tag with the following meta language syyntax:
+    {fs}{method}{action} = form start
+    {fe} = form end
+    {it}{name} = input type="text" name value
+    {ip}{name} = input type="password" name
+    {ie}{name} = input type="email" name
+    {ic}{name}{value} = input type="checkbox" name value 
+    {is} =
+"""
+
+
 
 # Insights on commandline parsing
 # If user gives an output, that output has to be a directory, i.e., the directory to store the html documents produced by jemdoc
