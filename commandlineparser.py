@@ -147,26 +147,28 @@ class CommandLineParser():
         if engineName not in ("less", "sass", "css", "scss"):
             raise argparse.ArgumentTypeError(
                 "css engine '{}' is not supported".format(engine))
-        self._engine = engineName
         return engineName
 
     def installCssEngine(self):
         engine = self._args.cssEngine
+        #print "Engine: " + engine
         if engine == "less":
             self._install("lesscpy")
-            self._engine = "lesscpy"
+            self._cssEngine = "lesscpy"
         elif engine == "sass" or engine == "scss":
             self._install("libsass")
-            self._engine = "pysassc"
+            self._cssEngine = "pysassc"
+        else:
+            self._cssEngine = "css"
 
     def getCssEngine(self):
-        return self._engine
+        return self._cssEngine
 
     def getCssStyle(self):
         return self._args.cssEngine.lower()
 
     @staticmethod
-    def compileToCss(self, engine, inputfile, outputfile):
+    def compileToCss(engine, inputfile, outputfile):
         if not os.path.exists(inputfile):
             print "\033[91mWarn\033[00m: %s does not exist in current directory, cannot be used!"
             return False
@@ -174,6 +176,7 @@ class CommandLineParser():
         try:
             out = os.path.join(os.getcwd(), outputfile)
             cmd = "{} {} {}".format(engine, inputfile, out)
+            print cmd
             out = subprocess.check_output(cmd, shell=True)
             return True
         except subprocess.CalledProcessError as ex:
@@ -218,7 +221,6 @@ class CommandLineParser():
   <link rel="stylesheet" href="jemdoc.css" type="text/css" />
   
   [windowtitle]
-  # used in header for window title.
   <title>|</title>
 
   [fwtitlestart]
@@ -251,7 +253,6 @@ class CommandLineParser():
   <div class="title-divider"></div>
 
   [doctitle]
-  # used at top of document.
   <div class="toptitle">
   <h1>|</h1>
   

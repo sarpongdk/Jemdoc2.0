@@ -948,7 +948,7 @@ def insertnavbaritems(f, mname, current, prefix):
                         navitem += br(re.sub(r'(?<!\\n) +', '~', group), f)
 
             if link[-len(current):] == current:
-                hb(f.outf, f.conf['currentnavitem'], link, menuitem)
+                hb(f.outf, f.conf['currentnavitem'], link, navitem)
             else:
                 hb(f.outf, f.conf['navitem'], link, navitem)
     m.close()
@@ -1069,7 +1069,7 @@ def procfile(f, cliparser):
         # TODO: compile with corresponding css engine
         outCssfile = os.path.splitext(cssFile)[0] + '.css'
         cssEngine = cliparser.getCssEngine()
-        if cssFile.endswith(extension):
+        if cssFile.endswith(extension) and extension != ".css":
             compiled = CommandLineParser.compileToCss(cssEngine, cssFile, outCssfile)
             if not compiled:
                 invalidCSS.append(cssFile)
@@ -1106,13 +1106,6 @@ def procfile(f, cliparser):
         inserttitle(f, t)
         out(f.outf, f.conf['fwtitleend'])
 
-    if menu:
-        out(f.outf, f.conf['menustart'])
-        insertmenuitems(*menu)
-        out(f.outf, f.conf['menuend'])
-    else:
-        out(f.outf, f.conf['nomenu'])
-
     # TODO: Complete navbar 
     if navbar:
         out(f.outf, f.conf['navstart'])
@@ -1120,6 +1113,13 @@ def procfile(f, cliparser):
         out(f.outf, f.conf['navend'])
     else:
         out(f.outf, f.conf['nonav'])
+
+    if menu:
+        out(f.outf, f.conf['menustart'])
+        insertmenuitems(*menu)
+        out(f.outf, f.conf['menuend'])
+    else:
+        out(f.outf, f.conf['nomenu'])
 
     if not fwtitle:
         inserttitle(f, t)
