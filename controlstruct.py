@@ -1,8 +1,3 @@
-"""
-This class is a control sturct class for convenience. It's a wrapper around the input and output files
-"""
-
-
 class ControlStruct(object):
     def __init__(self, infile, outfile=None, conf=None, inname=None):
         self.inname = inname

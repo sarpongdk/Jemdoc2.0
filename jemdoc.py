@@ -119,6 +119,7 @@ def insertmenuitems(f, mname, current, prefix):
 
         if r:  # then we have a menu item.
             link = r.group(2)
+            #print link
             # Don't use prefix if we have an absolute link.
             if '://' not in r.group(2):
                 link = prefix + allreplace(link)
@@ -1269,11 +1270,11 @@ def procfile(f, cliparser):
                             source = g[i]
                             ext = os.path.splitext(g[i])[1]
                             srcTag = '<source src=%s type=video/%s />\n' %(source, ext)
-                            out(f.out, srcTag)
+                            out(f.outf, srcTag)
                         else:
                             # user did not provide source and so we consider it to be the end of it
                             break
-                    out(f.out, '<em>Sorry, your browser <strong>does not</strong> support the embedded videos.</em>')
+                    out(f.outf, '<em>Sorry, your browser <strong>does not</strong> support the embedded videos.</em>')
                     out(f.outf, '</video>\n')
 
                 # TODO: handle audio
@@ -1296,11 +1297,11 @@ def procfile(f, cliparser):
                             source = g[i]
                             ext = os.path.splitext(g[i])[1]
                             srcTag = '<source src=%s type=audio/%s />\n' %(source, ext)
-                            out(f.out, srcTag)
+                            out(f.outf, srcTag)
                         else:
                             # user did not provide source and so we consider it to be the end of it
                             break
-                    out(f.out, '<em>Sorry, your browser <strong>does not</strong> support embedded audios.</em>')
+                    out(f.outf, '<em>Sorry, your browser <strong>does not</strong> support embedded audios.</em>')
                     out(f.outf, '</audio>\n')
                 
                 # TODO: handle forms

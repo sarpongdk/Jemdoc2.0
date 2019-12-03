@@ -80,7 +80,7 @@ Press ^C \033[91m(Ctrl + C)\033[00m at any time to quit.
         try:
             print "Installing %s" %package
             subprocess.check_output(
-                [sys.executable, "-m", "pip2", "-q", "install", package])
+                [sys.executable, "-m", "pip2", "-q", "install", "--user", package])
             return True
         except subprocess.CalledProcessError as ex:
             print "\033[91mWarn\033[00m: %s cannot be installed.\n Creating a non-react jemdoc website..." %package

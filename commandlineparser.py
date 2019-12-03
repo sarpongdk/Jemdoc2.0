@@ -135,7 +135,7 @@ class CommandLineParser():
         try:
             print "Installing %s" % package
             subprocess.check_output(
-                [sys.executable, "-m", "pip2", "-q", "install", package])
+                [sys.executable, "-m", "pip2", "-q", "install", "--user", package])
             return True
         except subprocess.CalledProcessError as ex:
             print "\033[91mWarn\033[00m: {} cannot be installed.\n Creating a non-react jemdoc website...".format(
@@ -236,7 +236,7 @@ class CommandLineParser():
   <span class="navbar-toggler-icon"></span>
   </button>
   <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-  <div class="navbar-nav">
+  <div class="navbar-nav nav-fill w-100">
 
   [navend]
   </div>
