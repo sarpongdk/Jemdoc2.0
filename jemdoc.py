@@ -1313,7 +1313,7 @@ def procfile(f, cliparser):
                     out(f.out, '<form action="%s"' %g[2])
                     
                     if g[3]:
-                        out(f.outf, ' method="%s"' %g[3]
+                        out(f.outf, ' method="%s"') %g[3]
                     else:
                         out(f.outf, ' method="GET"')
  
@@ -1325,7 +1325,6 @@ def procfile(f, cliparser):
                 elif len(g) == 2 and g[1] == 'fe' or g[1] == 'FE':
                     # {}{fe}
                     out(f.out, '</form>\n')                
-
                 else:
                     raisejandal("couldn't handle block", f.linenum)
 
