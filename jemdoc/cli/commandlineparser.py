@@ -153,10 +153,10 @@ class CommandLineParser():
         engine = self._args.cssEngine
         #print "Engine: " + engine
         if engine == "less":
-            self._install("lesscpy")
+            #self._install("lesscpy")
             self._cssEngine = "lesscpy"
         elif engine == "sass" or engine == "scss":
-            self._install("libsass")
+            #self._install("libsass")
             self._cssEngine = "pysassc"
         else:
             self._cssEngine = "css"

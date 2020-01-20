@@ -1,6 +1,8 @@
+# virtualenv
+myenv
+
 # for personal use
 notes
-
 
 jemdoc-website
 *.pyc

@@ -1,0 +1,8 @@
+backports.functools-lru-cache==1.6.1
+beautifulsoup4==4.8.2
+bs4==0.0.1
+lesscpy==0.13.0
+libsass==0.19.4
+ply==3.11
+six==1.14.0
+soupsieve==1.9.5

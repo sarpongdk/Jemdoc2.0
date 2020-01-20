@@ -1,40 +1,16 @@
-# Jemdoc2.0
-Jemdoc2.0 is an extension of Jemdoc which extends the meta language used to include HTML5 features. incorporates the semantics behind HTML5 and supports multiple CSS preprocessors
+# Jemdoc
+Jemdoc is a light text-based markup language designed for creating websites. It takes a text file written with jemdoc markup, an optional configuration file and an optional menu file, and makes static websites that look something like [this one](http://jemdoc.jaboc.net/).
 
-## Getting Started
-To run Jemdoc2.0, make sure that you have:
-- python >= 2.6.x (< 3.x.x)
-- npm
+#### Motivation
+This revision to [jemdoc](https://github.com/jem/jemdoc) seeks to keep this utility tool with modern standards in web development. Since 2007, new technologies and modifications have been made to HTML and CSS. Jemdoc, in its present state lacks some of the features of the [HTML5](https://html.spec.whatwg.org/multipage/) standard including basic HTML markup such as:
+- Semantic HTML tags
+- HTML Forms 
+- Responsive web design
 
-## Usage
-Jemdoc2.0 provides a new commandline page that clearly describes the usage of the program
+In addition, CSS3 has seen some changes as well. The most important feature concerning styling is the ability to use CSS Preprocessors, that have become common in the web development world.
 
-The commandline help can be accessed via `python2 jemdoc.py -h` or `python2 jemdoc2.py --help`
+This revision to jemdoc seeks to keep jemdoc abreast with these changes
 
-usage: Jemdoc [-h] [-s] [-v] [-i] [--css <engine>] [-r]
-              [-c <filename>] [-d <dirname>]
-              input [input ...]
-
-Produces html markup from a jemdoc SOURCEFILE. See
-http://jemdoc.jaboc.net/ for many more details.
-
-positional arguments:
-  input                 relative path to input files
-
-optional arguments:
-  -h, --help            show this help message and exit
-  -s, --show-config     generates the standard configuration in a directory
-                        <configs> in the current working directory
-  -v, --version         display Jemdoc version number
-  -i, --info            display system information
-  --css <engine>
-                        add stylesheet <engine> support [less|sass|scss]
-                        (defaults to plain css)
-  -c <filename>, --config <filename>
-                        add custom configuration file
-  -d <dirname>, --dir <dirname>
-                        output files in directory <dirname>, name of ReactJS
-                        directory when compiling with ReactJS
-
-
-
+#### License
+This work is the extension of the original jemdoc created by [Jacob Mattingley](https://github.com/jem). As the original project was open source, this has been put under an MIT license as well.
+For more detail concerning the license, (click here)[./LICENSE]
