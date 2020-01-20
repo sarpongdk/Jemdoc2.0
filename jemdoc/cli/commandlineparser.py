@@ -436,4 +436,3 @@ if __name__ == "__main__":
     print "Innames: {}".format(args.input)
     print "CSS Engine: {}".format(args.cssEngine)
 
-# TODO: Build man page

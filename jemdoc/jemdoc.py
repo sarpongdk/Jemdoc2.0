@@ -17,9 +17,6 @@
 # You should have received a copy of the GNU General Public License along with
 # this program. If not, see <http://www.gnu.org/licenses/>.
 #
-# The LaTeX equation portions of this file were initially based on
-# latexmath2png, by Kamil Kisiel (kamil@kamikisiel.net).
-#
 
 import sys
 import os
@@ -29,8 +26,9 @@ import StringIO
 from subprocess import *
 import tempfile
 
-from commandlineparser import CommandLineParser
-from controlstruct import ControlStruct, JandalError
+from cli.commandlineparser import CommandLineParser
+from control.controlstruct import ControlStruct
+from control.jandal import JandalError
 
 def standardconf():
     return CommandLineParser.getStandardConfig(False)
@@ -77,8 +75,8 @@ def parseconf(cns):
 
     for f in fs:  # for each file object in fs
         # ControlStruct(fileObj) wraps fileObj in ControlStruct class
-        # pc is a method
-        while pc(ControlStruct(f)) != '':
+        # getNextCharacter is a method
+        while getNextCharacter(ControlStruct(f)) != '':
             l = readnoncomment(f)
             r = re.match(r'\[(.*)\]\n', l)
 
@@ -108,7 +106,7 @@ def insertmenuitems(f, mname, current, prefix):
   f is the ControlStruct wrapper class that decorates the output file object
   """
     m = open(mname, 'rb')
-    while pc(ControlStruct(m)) != '':
+    while getNextCharacter(ControlStruct(m)) != '':
         l = readnoncomment(m)
         l = l.strip()
         if l == '':
@@ -172,30 +170,30 @@ def hb(f, tag, content1, content2=None):
         out(f, r)
 
 
-def pc(f, ditchcomments=True):
+def getNextCharacter(f, ditchcomments=True):
     """Peeks at next character in the file."""
     # Should only be used to look at the first character of a new line.
     c = f.inf.read(1)  # reads first charactor of input file
     if c:  # only undo forward movement if we're not at the end.
         #
-        # if character c is comment symbol and ditchComments is True, read next line with nl(f)
+        # if character c is comment symbol and ditchComments is True, read next line with getNextLine(f)
         if ditchcomments and c == '#':
-            l = nl(f)  # reads next line
+            l = getNextLine(f)  # reads next line
             if doincludes(
                     f, l
             ):  # doincludes(fileObj, line) is a method described below. Checks if user is including external file
                 return "#"
 
         if c in ' \t':
-            return pc(f)
+            return getNextCharacter(f)
 
         if c == '\\':
-            c += pc(f)
+            c += getNextCharacter(f)
 
         f.inf.seek(-1, 1)
     elif f.otherfiles:
         f.nextfile()
-        return pc(f, ditchcomments)
+        return getNextCharacter(f, ditchcomments)
 
     return c
 
@@ -227,7 +225,7 @@ def doincludes(f, l):
     return True
 
 
-def nl(f, withcount=False, codemode=False):
+def getNextLine(f, withcount=False, codemode=False):
     """Get input file line."""
     """
   This method extracts the next line from the current file. If that file has no extra lines
@@ -236,12 +234,12 @@ def nl(f, withcount=False, codemode=False):
     s = f.inf.readline()
     if not s and f.otherfiles:  # if current file has no lines left and there are other files
         f.nextfile()  # switch files
-        return nl(f, withcount, codemode)  # perform same algorithm on it
+        return getNextLine(f, withcount, codemode)  # perform same algorithm on it
 
     f.linenum += 1
 
     if not codemode:
-        # remove any special characters - assume they were checked by pc()
+        # remove any special characters - assume they were checked by getNextCharacter()
         # before we got here.
         # remove any trailing comments.
         s = s.lstrip(' \t')
@@ -255,8 +253,7 @@ def nl(f, withcount=False, codemode=False):
 
         r = re.match('(%s+) ' % m, s)
         if not r:
-            raise SyntaxError("couldn't handle the jandal (code 12039) on line"
-                              " %d" % f.linenum)
+            raise SyntaxError("couldn't handle the jandal (code 12039) on line%d" % f.linenum)
 
         if not codemode:
             s = s.lstrip('-.=:')
@@ -273,15 +270,15 @@ def np(f, withcount=False, eatblanks=True):
     """Gets the next paragraph from the input file."""
     # New paragraph markers signalled by characters in following tuple.
     if withcount:
-        (s, c) = nl(f, withcount)
+        (s, c) = getNextLine(f, withcount)
     else:
-        s = nl(f)
+        s = getNextLine(f)
 
-    while pc(f) not in ('\n', '-', '.', ':', '', '=', '~', '{', '\\(', '\\)'):
-        s += nl(f)
+    while getNextCharacter(f) not in ('\n', '-', '.', ':', '', '=', '~', '{', '\\(', '\\)'):
+        s += getNextLine(f)
 
-    while eatblanks and pc(f) == '\n':
-        nl(f)  # burn blank line.
+    while eatblanks and getNextCharacter(f) == '\n':
+        getNextLine(f)  # burn blank line.
 
     # in both cases, ditch the trailing \n.
     if withcount:
@@ -334,13 +331,19 @@ def replacepercents(b):
 
 def replaceimages(b):
     # works with [img{width}{height}{alttext} location caption].
-    r = re.compile(
-        r'(?<!\\)\[img((?:\{.*?\}){,3})\s(.*?)(?:\s(.*?))?(?<!\\)\]',
-        re.M + re.S)
+    r = re.compile(r'(?<!\\)\[img(\.[A-Za-z0-9]+)?(#[A-Za-z0-9]+)?((?:\{.*?\}){,3})\s(.*?)(?:\s(.*?))?(?<!\\)\]', re.M + re.S)
     m = r.search(b)
     s = re.compile(r'{(.*?)}', re.M + re.S)
     while m:
-        m1 = list(s.findall(m.group(1)))
+        imgClass = m.group(1)
+        imgId = m.group(2)
+        if imgClass:
+            imgClass = imgClass[1:]
+
+        if imgId:
+            imgId = imgId[1:]
+
+        m1 = list(s.findall(m.group(3)))
         m1 += [''] * (3 - len(m1))
 
         bits = []
@@ -364,9 +367,7 @@ def replaceimages(b):
         else:
             bits.append(r'alt=\"\"')
 
-        b = b[:m.start(
-        )] + r'<figure><img class="img-fluid" %s /></figure>' % " ".join(
-            bits) + b[m.end():]
+        b = b[:m.start()] + r'<figure><img class="img-fluid %s" id="%s" %s /></figure>' % (imgClass, imgId, " ".join(bits) + b[m.end():])
 
         m = r.search(b, m.start())
     return b
@@ -747,7 +748,7 @@ def dashlist(f, ordered=False):
         char = '-'
         ul = 'ul'
 
-    while pc(f) == char:
+    while getNextCharacter(f) == char:
         (s, newlevel) = np(f, True, False)
 
         # first adjust list number as appropriate.
@@ -777,7 +778,7 @@ def dashlist(f, ordered=False):
 
 def colonlist(f):
     out(f.outf, '<dl>\n')
-    while pc(f) == ':':
+    while getNextCharacter(f) == ':':
         s = np(f, eatblanks=False)
         r = re.compile(r'\s*{(.*?)(?<!\\)}(.*)', re.M + re.S)
         g = re.match(r, s)
@@ -819,7 +820,7 @@ def codeblock(f, g):
     # Handle \~ and ~ differently.
     stringmode = False
     while 1:  # wait for EOF.
-        l = nl(f, codemode=True)
+        l = getNextLine(f, codemode=True)
         if not l:
             break
         elif l.startswith('~'):
@@ -899,7 +900,7 @@ def inserttitle(f, t):
         hb(f.outf, f.conf['doctitle'], t)
 
         # Look for a subtitle.
-        if pc(f) != '\n':
+        if getNextCharacter(f) != '\n':
             hb(f.outf, f.conf['subtitle'], br(np(f), f))
 
         hb(f.outf, f.conf['doctitleend'], t)
@@ -914,7 +915,7 @@ def insertnavbaritems(f, mname, current, prefix):
   prefix is the
   """
     m = open(mname, 'rb')
-    while pc(ControlStruct(m)) != '':
+    while getNextCharacter(ControlStruct(m)) != '':
         l = readnoncomment(m)
         l = l.strip()
         if l == '':
@@ -971,7 +972,7 @@ def procfile(f, cliparser):
     js = []
     title = None
 
-    while pc(f, False) == '#':
+    while getNextCharacter(f, False) == '#':
         l = f.inf.readline()
 
         f.linenum += 1
@@ -996,7 +997,7 @@ def procfile(f, cliparser):
                         menu = (f, g[0], g[1], g[2])
 
                 elif b.startswith('nav'):
-                    # TODO: parse nav
+                    # navbar
                     nav = True
                     r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
                     g = re.findall(r, b)
@@ -1044,7 +1045,7 @@ def procfile(f, cliparser):
                 elif b.startswith('analytics'):
                     r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
                     analytics = re.findall(r, b)[0]  
-                    f.analytics = analytics
+                    f.analytics = analyticsj
 
                 elif b.startswith('title'):
                     r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
@@ -1067,7 +1068,7 @@ def procfile(f, cliparser):
     extension = '.' + cliparser.getCssStyle()
     invalidCSS = []
     for cssFile in css:
-        # TODO: compile with corresponding css engine
+        # compile with corresponding css engine
         outCssfile = os.path.splitext(cssFile)[0] + '.css'
         cssEngine = cliparser.getCssEngine()
         if cssFile.endswith(extension) and extension != ".css":
@@ -1087,8 +1088,8 @@ def procfile(f, cliparser):
         hb(f.outf, f.conf['specificjs'], jsFile)
 
     # Look for a title.
-    if pc(f) == '=':  # don't check exact number f.outf '=' here jem.
-        t = br(nl(f), f)[:-1]
+    if getNextCharacter(f) == '=':  # don't check exact number f.outf '=' here jem.
+        t = br(getNextLine(f), f)[:-1]
         if title is None:
             title = re.sub(' *(<br />)|(&nbsp;) *', ' ', t)
     else:
@@ -1107,7 +1108,7 @@ def procfile(f, cliparser):
         inserttitle(f, t)
         out(f.outf, f.conf['fwtitleend'])
 
-    # TODO: Complete navbar 
+    # navbar
     if navbar:
         out(f.outf, f.conf['navstart'])
         insertnavbaritems(*navbar)
@@ -1129,7 +1130,7 @@ def procfile(f, cliparser):
     imgblock = False
     tableblock = False
     while 1:  # wait for EOF.
-        p = pc(f)
+        p = getNextCharacter(f)
 
         if p == '':
             break
@@ -1146,39 +1147,39 @@ def procfile(f, cliparser):
 
         # look for titles.
         elif p == '=':
-            (s, c) = nl(f, True)
+            (s, count) = getNextLine(f, True)
             # trim trailing \n.
             s = s[:-1]
-            hb(f.outf, '<h%d>|</h%d>\n' % (c, c), br(s, f))
+            hb(f.outf, '<h%d>|</h%d>\n' % (count, count), br(s, f))
 
         # look for comments.
         elif p == '#':
-            l = nl(f)
+            l = getNextLine(f)
 
         elif p == '\n':
-            nl(f)
+            getNextLine(f)
 
         # look for blocks.
         elif p == '~':
-            nl(f)
+            getNextLine(f)
             if infoblock:
                 out(f.outf, f.conf['infoblockend'])
                 infoblock = False
-                nl(f)
+                getNextLine(f)
                 continue
             elif imgblock:
                 out(f.outf, '</figure>\n')
                 imgblock = False
-                nl(f)
+                getNextLine(f)
                 continue
             elif tableblock:
                 out(f.outf, '</td></tr></table>\n')
                 tableblock = False
-                nl(f)
+                getNextLine(f)
                 continue
             else:
-                if pc(f) == '{':
-                    l = allreplace(nl(f))
+                if getNextCharacter(f) == '{':
+                    l = allreplace(getNextLine(f))
                     r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
                     g = re.findall(r, l)
                 else:
@@ -1201,9 +1202,15 @@ def procfile(f, cliparser):
                     # {title}{table}{name}
                     # one | two ||
                     # three | four ||
+                    tableClass = None
+                    tableSplit = g[1].split(".")
+                    if len(tableSplit) > 0:
+                        tableClass = tableSplit[1]
                     name = ''
                     if len(g) >= 3 and g[2]:
                         name += ' id="%s"' % g[2]
+                    if tableClass:
+                        name += ' class="%s"' %tableClass
                     out(f.outf,
                         '<table%s>\n<tr class="r1"><td class="c1">' % name)
                     f.tablerow = 1
@@ -1217,6 +1224,16 @@ def procfile(f, cliparser):
                 elif len(g) >= 4 and g[1] == 'img_left':
                     # handles
                     # {}{img_left}{source}{alttext}{width}{height}{linktarget}.
+                    imgClass = None
+                    imgId = None
+                    imgClassSplit = g[1].split('.')
+                    imgIdSplit = g[1].split('#')
+                    if len(imgClassSplit) > 0:
+                        imgClass = imgClassSplit[1]
+
+                    if len(imgIdSplit) > 0:
+                        imgId = imgIdSplit[1]
+
                     g += [''] * (7 - len(g))
 
                     if g[4].isdigit():
@@ -1228,17 +1245,26 @@ def procfile(f, cliparser):
                     out(f.outf, '<figure>\n')
                     if g[6]:
                         out(f.outf, '<a href="%s">' % g[6])
-                    out(f.outf, '<img class="img-fluid" src="%s"' % g[2])
+                    
+                    htmlClass = ''
+                    if imgClass:
+                        htmlClass = 'class="%s"' %imgClass
+                    
+                    htmlId = ''
+                    if imgId:
+                        htmlId = 'id="%s"' %imgId
+
+                    out(f.outf, '<img class="img-fluid" src="%s" %s %s' %(g[2], htmlClass, htmlId) )
                     out(f.outf, ' alt="%s"' % g[3])
                     if g[4]:
                         out(f.outf, ' width="%s"' % g[4])
                     if g[5]:
                         out(f.outf, ' height="%s"' % g[5])
+                    out(f.outf, ' />')
                     if g[6]:
                         out(f.outf, '</a>')
                     imgblock = True
                 
-                # TODO: handle video
                 elif len(g) >= 2 and 'video' in g[1]:
                     # {}{video}{width}{height}{source}{source}...
                     videoTag = '<video'
@@ -1277,7 +1303,7 @@ def procfile(f, cliparser):
                     out(f.outf, '<em>Sorry, your browser <strong>does not</strong> support the embedded videos.</em>')
                     out(f.outf, '</video>\n')
 
-                # TODO: handle audio
+                # parse audio
                 elif len(g) >= 2 and 'audio' in g[1]:
                     # {}{audio}{source}{source}...
                     audioTag = '<audio'
@@ -1298,19 +1324,18 @@ def procfile(f, cliparser):
                             ext = os.path.splitext(g[i])[1]
                             srcTag = '<source src=%s type=audio/%s />\n' %(source, ext)
                             out(f.outf, srcTag)
-                        else:
-                            # user did not provide source and so we consider it to be the end of it
+                        else: # user did not provide source and so we consider it to be the end of it
                             break
                     out(f.outf, '<em>Sorry, your browser <strong>does not</strong> support embedded audios.</em>')
                     out(f.outf, '</audio>\n')
                 
-                # TODO: handle forms
+                # parse forms
                 elif len(g) >= 2 and g[1] == 'fs' or g[1] == 'FS':
                     # {}{fs}{action}{method}{name}
                     g += [''] * (7 - len(g))
                     
                     if not g[2]:
-                        raisejandal("cannot create form with action provided: {fs}{action}", f.linenum)
+                        raisejandal("cannot create form without action attribute provided: \{fs\}\{action\}", f.linenum)
                     out(f.out, '<form action="%s"' %g[2])
                     
                     if g[3]:
@@ -1323,9 +1348,46 @@ def procfile(f, cliparser):
                     # introduced new form block variable for creation of forms
                     out(f.out, '>\n')
 
-                elif len(g) == 2 and g[1] == 'fe' or g[1] == 'FE':
+                elif len(g) == 2 and g[1].lower() == 'fe':
                     # {}{fe}
-                    out(f.out, '</form>\n')                
+                    out(f.outf, '</form>\n')       
+                elif len(g) >= 2 and g[1].lower() in ('it', 'ip', 'ie', 'ic', 'is'):
+                    #{}{it}{name}{placeholder} = input type="text" name value
+                    #{}{ip}{name}{placeholder} = input type="password" name
+                    #{}{ie}{name}{placeholder} = input type="email" name
+                    #{}{ic}{name}{value}{label} = input type="checkbox" name value 
+                    #{}{is} =
+                    g[1] = g[1].lower()
+                    if g[1] != "is":
+                        if not g[2]:
+                            raisejandal("cannot create <input> tag without a 'name' attribute provided\nusage: \{inputtag\}\{name\}", f.linenum)
+                        if g[1] == 'ic' and not g[3]:
+                            raisejandal("cannot create <input type='checkbox> without a 'value' attrubute\nusage: \{inputtag\}\{name\}\{value\}")
+
+                    if g[1] in ('it', 'ip', 'ie'):
+                        name = str(g[2])
+                        placeholder = None
+
+                        if (g[3]):
+                            placeholder = str(g[3])                        
+                        inputType = 'text'
+                        if g[1] == 'ip':
+                            inputType = 'password'
+                        elif g[1] == 'ie':
+                            inputType = 'email'
+                        out(f.outf, '<div class="form-group">\n')
+                        out(f.outf, '<input type="%s" name="%s" placeholder="%s" class="form-control" />\n' %(inputType, name, placeholder))
+                        out(f.outf, '</div>\n')
+                    elif g[1] == 'is':
+                        out(f.outf, '<button type="submit" class="btn btn-primary">Submit</button>\n')
+                    elif g[1] == 'ic':
+                        name = str(g[2])
+                        inputType = 'checkbox'
+                        value = str(g[3])
+                        out(f.outf, '<div class="form-group">\n')
+                        out(f.outf, '<input type="%s" name="%s" value="%s" class="form-control" />\n' %(inputType, name, value))
+                        out(f.outf, '</div>\n')
+
                 else:
                     raisejandal("couldn't handle block", f.linenum)
 
@@ -1414,23 +1476,6 @@ if __name__ == '__main__':
 
 
 """
-TODO:
-1. Test that the css preprocessor works perfectly
-2. Create a navbar based on the user MENU file given the navbar option
-3. Add a video tag to the meta language that follows the following syntax: {video}{src}{src} 1 video and remaining are sources
-4. Repeat 3 for audio tags
-5. Create a form tag with the following meta language syyntax:
-    {fs}{method}{action} = form start
-    {fe} = form end
-    {it}{name} = input type="text" name value
-    {ip}{name} = input type="password" name
-    {ie}{name} = input type="email" name
-    {ic}{name}{value} = input type="checkbox" name value 
-    {is} =
-"""
-
-
-
 # Insights on commandline parsing
 # If user gives an output, that output has to be a directory, i.e., the directory to store the html documents produced by jemdoc
 # All the output files are named after the input files with the extension '.html' attached to it instead of '.jemdoc'
@@ -1473,3 +1518,4 @@ TODO:
 # - Codeblock Component
 # - Title Component
 # - Info Component
+"""

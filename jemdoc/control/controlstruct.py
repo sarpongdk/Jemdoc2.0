@@ -21,7 +21,3 @@ class ControlStruct(object):
     def nextfile(self):
         self.inf.close()
         self.inf = self.otherfiles.pop(0)
-
-
-class JandalError(Exception):
-    pass

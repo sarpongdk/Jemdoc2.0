@@ -1,12 +1,23 @@
+# for personal use
 notes
+
+
 jemdoc-website
 *.pyc
+
+# testing files directory - personal again
 test*
+
+# web stuff
 *.css
 *.html
 *.jsx
+
+# test config files
 configs*
 example-pages*
+
+# backups and vscode
 *.bak
 .vscode
 example*

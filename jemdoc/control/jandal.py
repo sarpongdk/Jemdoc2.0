@@ -1,0 +1,2 @@
+class JandalError(Exception):
+    pass
