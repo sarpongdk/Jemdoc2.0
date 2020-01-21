@@ -1,14 +1,17 @@
 # virtualenv
-myenv
+myenv/
+
+# mytests
+mytests/
+
+# production
+dist/
+build/
+*.egg-info/
 
 # for personal use
 notes
-
-jemdoc-website
 *.pyc
-
-# testing files directory - personal again
-test*
 
 # web stuff
 *.css

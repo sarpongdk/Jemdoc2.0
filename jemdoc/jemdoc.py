@@ -1,29 +1,11 @@
 #!/usr/bin/env python2
-"""jemdoc version 0.7.3, 2012-11-27."""
-
-# Copyright (C) 2007-2012 Jacob Mattingley (jacobm@stanford.edu).
-#
-# This file is part of jemdoc.
-#
-# jemdoc is free software; you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation; either version 3 of the License, or (at your option) any later
-# version.
-#
-# jemdoc is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# this program. If not, see <http://www.gnu.org/licenses/>.
-#
 
 import sys
 import os
 import re
 import time
 import StringIO
-from subprocess import *
+import subprocess # was from subprocess import *
 import tempfile
 
 from cli.commandlineparser import CommandLineParser
@@ -266,7 +248,7 @@ def getNextLine(f, withcount=False, codemode=False):
         return s
 
 
-def np(f, withcount=False, eatblanks=True):
+def nextParagraph(f, withcount=False, eatblanks=True):
     """Gets the next paragraph from the input file."""
     # New paragraph markers signalled by characters in following tuple.
     if withcount:
@@ -347,7 +329,7 @@ def replaceimages(b):
         m1 += [''] * (3 - len(m1))
 
         bits = []
-        link = m.group(2).strip()
+        link = m.group(4).strip()
         bits.append(r'src=\"%s\"' % quote(link))
 
         if m1[0]:
@@ -749,7 +731,7 @@ def dashlist(f, ordered=False):
         ul = 'ul'
 
     while getNextCharacter(f) == char:
-        (s, newlevel) = np(f, True, False)
+        (s, newlevel) = nextParagraph(f, True, False)
 
         # first adjust list number as appropriate.
         if newlevel > level:
@@ -779,7 +761,7 @@ def dashlist(f, ordered=False):
 def colonlist(f):
     out(f.outf, '<dl>\n')
     while getNextCharacter(f) == ':':
-        s = np(f, eatblanks=False)
+        s = nextParagraph(f, eatblanks=False)
         r = re.compile(r'\s*{(.*?)(?<!\\)}(.*)', re.M + re.S)
         g = re.match(r, s)
 
@@ -797,6 +779,7 @@ def colonlist(f):
 
 
 def codeblock(f, g):
+    # TODO: give users the ability to add class and id
     if g[1] == 'raw':
         raw = True
         ext_prog = None
@@ -880,8 +863,8 @@ def codeblock(f, g):
     elif ext_prog:
         print 'filtering through %s...' % ext_prog
 
-        output, _ = Popen(ext_prog, shell=True, stdin=PIPE,
-                          stdout=PIPE).communicate(buff)
+        output, _ = subprocess.Popen(ext_prog, shell=True, stdin=subprocess.PIPE,
+                          stdout=subprocess.PIPE).communicate(buff)
         out(f.outf, output)
     else:
         if g[1] == 'jemdoc':
@@ -896,12 +879,13 @@ def prependnbsps(l):
 
 
 def inserttitle(f, t):
+    # TODO: give users the ability to add id and class
     if t is not None:
         hb(f.outf, f.conf['doctitle'], t)
 
         # Look for a subtitle.
         if getNextCharacter(f) != '\n':
-            hb(f.outf, f.conf['subtitle'], br(np(f), f))
+            hb(f.outf, f.conf['subtitle'], br(nextParagraph(f), f))
 
         hb(f.outf, f.conf['doctitleend'], t)
 
@@ -958,7 +942,7 @@ def insertnavbaritems(f, mname, current, prefix):
 def procfile(f, cliparser):
     f.linenum = 0
 
-    menu = None
+    menu = {}
     navbar = None
     # convert these to a dictionary.
     showfooter = True
@@ -986,24 +970,30 @@ def procfile(f, cliparser):
                 b = b.strip()
                 if b.startswith('menu'):
                     sidemenu = True
-                    r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
+                    r = re.compile(r'(\.[A-Za-z0-9]+)?(#[A-Za-z0-9]+)?(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
                     g = re.findall(r, b)
                     if len(g) > 3 or len(g) < 2:
-                        raise SyntaxError('sidemenu error on line %d' %
-                                          f.linenum)
+                        raise SyntaxError('sidemenu error on line %d' % f.linenum)
                     if len(g) == 2:
-                        menu = (f, g[0], g[1], '')
+                        menu = {'file': f, 'menuname': g[0][2], 'page': g[1][2], 'preface': ''}
+                        # menu = (f, g[0][2], g[1][2], '')
                     else:
-                        menu = (f, g[0], g[1], g[2])
+                        menu = {'file': f, 'menuname': g[0][2], 'page': g[1][2], 'preface': g[2][2]}
+                        # menu = (f, g[0][2], g[1][2], g[2][2])
+                        # 'class': g[0][0], 'id': g[0][1]
+                    if g[0][0]:
+                        menu['class'] = g[0][0]
+                    if g[0][1]:
+                        menu['id'] = g[0][1]
 
+                # TODO: setup navbar like menu
                 elif b.startswith('nav'):
                     # navbar
                     nav = True
                     r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
                     g = re.findall(r, b)
                     if len(g) > 3 or len(g) < 2:
-                        raise SyntaxError('navbar error on line %d' %
-                                          f.linenum)
+                        raise SyntaxError('navbar error on line %d' % f.linenum)
                     if len(g) == 2:
                         navbar = (f, g[0], g[1], '')
                     else:
@@ -1045,15 +1035,13 @@ def procfile(f, cliparser):
                 elif b.startswith('analytics'):
                     r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
                     analytics = re.findall(r, b)[0]  
-                    f.analytics = analyticsj
+                    f.analytics = analytics
 
                 elif b.startswith('title'):
                     r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
                     g = re.findall(r, b)
                     if len(g) != 1:
-                        raise SyntaxError('addtitle error on line %d' %
-                                          f.linenum)
-
+                        raise SyntaxError('addtitle error on line %d' %f.linenum)
                     title = g[0]
 
     # Get the file started with the firstbit.
@@ -1117,8 +1105,13 @@ def procfile(f, cliparser):
         out(f.outf, f.conf['nonav'])
 
     if menu:
-        out(f.outf, f.conf['menustart'])
-        insertmenuitems(*menu)
+        # menu = {'file': f, 'class': g[0][0], 'id': g[0][1], 'menuname': g[0][2], 'page': g[1][2], 'preface': g[2][2]}
+        menustart = f.conf['menustart'] % (menu.get('class', ''), menu.get('id', 'sidemenu'))
+        # print menustart
+        out(f.outf, menustart )
+        # menu = (f, 'menuname', 'page', 'preface')
+        menuData = ( menu['file'], menu['menuname'], menu['page'], menu['preface'] ) 
+        insertmenuitems(*menuData)
         out(f.outf, f.conf['menuend'])
     else:
         out(f.outf, f.conf['nomenu'])
@@ -1162,6 +1155,9 @@ def procfile(f, cliparser):
         # look for blocks.
         elif p == '~':
             getNextLine(f)
+
+            # TODO: add class and id here
+            # add class and id here
             if infoblock:
                 out(f.outf, f.conf['infoblockend'])
                 infoblock = False
@@ -1204,15 +1200,14 @@ def procfile(f, cliparser):
                     # three | four ||
                     tableClass = None
                     tableSplit = g[1].split(".")
-                    if len(tableSplit) > 0:
+                    if len(tableSplit) > 1:
                         tableClass = tableSplit[1]
                     name = ''
                     if len(g) >= 3 and g[2]:
                         name += ' id="%s"' % g[2]
                     if tableClass:
                         name += ' class="%s"' %tableClass
-                    out(f.outf,
-                        '<table%s>\n<tr class="r1"><td class="c1">' % name)
+                    out(f.outf, '<table%s>\n<tr class="r1"><td class="c1">' % name)
                     f.tablerow = 1
                     f.tablecol = 1
 
@@ -1306,7 +1301,24 @@ def procfile(f, cliparser):
                 # parse audio
                 elif len(g) >= 2 and 'audio' in g[1]:
                     # {}{audio}{source}{source}...
+                    classList = g[1].split('.')
+                    idList = g[1].split('#')
+                    audioClass = None
+                    audioId = None
+
+                    if len(classList) > 1:
+                        audioClass = str(classList[1])
+                    
+                    if len(idList) > 1:
+                        audioId = str(idList[1])
+
                     audioTag = '<audio'
+                    if audioClass:
+                        audioTag += ' %s' % audioClass
+
+                    if audioId:
+                        audioTag += ' %s' % audioId
+
                     if 'c' in g[1]:
                         audioTag += ' controls'
                     
@@ -1332,11 +1344,29 @@ def procfile(f, cliparser):
                 # parse forms
                 elif len(g) >= 2 and g[1] == 'fs' or g[1] == 'FS':
                     # {}{fs}{action}{method}{name}
-                    g += [''] * (7 - len(g))
+                    #g += [''] * (7 - len(g))
                     
+                    classList = g[1].split('.')
+                    idList = g[1].split('#')
+                    formClass = None
+                    formId = None
+
+                    if len(classList) > 1:
+                        formClass = str(classList[1])
+                    
+                    if len(idList) > 1:
+                        formId = str(idList[1])
+
                     if not g[2]:
                         raisejandal("cannot create form without action attribute provided: \{fs\}\{action\}", f.linenum)
-                    out(f.out, '<form action="%s"' %g[2])
+                    htmlForm = '<form action="%s"' %g[2]
+
+                    if formId:
+                        htmlForm += ' id="%s"' % formId
+                    if formClass:
+                        htmlForm += ' class="%s"' % formClass
+                    
+                    out(f.out, htmlForm)
                     
                     if g[3]:
                         out(f.outf, ' method="%s"') %g[3]
@@ -1392,7 +1422,7 @@ def procfile(f, cliparser):
                     raisejandal("couldn't handle block", f.linenum)
 
         else:
-            s = br(np(f), f, tableblock)
+            s = br(nextParagraph(f), f, tableblock)
             if s:
                 if tableblock:
                     hb(f.outf, '|\n', s)
@@ -1442,13 +1472,12 @@ def main():
     if cliparser.getUserConfig():
         confnames.append(cliparser.getUserConfig())
 
-    conf = parseconf(
-        confnames
-    )  # this function parses the configuration filenames in the list and returns config files
+    conf = parseconf(confnames)  # this function parses the configuration filenames in the list and returns config files
 
     # TODO: verify this
-    # if outdirname is not None and not os.path.isdir(outdirname) and len(innames) > 1:
-    #     raise RuntimeError('cannot handle one outfile with multiple infiles')
+    if outdirname is not None: 
+      if not os.path.isdir(outdirname) and len(innames) > 1:
+        raise RuntimeError('cannot handle one outfile with multiple infiles')
 
     # for each input file, format the corresponding output file
     for inname in innames:
@@ -1470,52 +1499,7 @@ def main():
         procfile(f, cliparser)
 
 
-#
+# main
 if __name__ == '__main__':
     main()
 
-
-"""
-# Insights on commandline parsing
-# If user gives an output, that output has to be a directory, i.e., the directory to store the html documents produced by jemdoc
-# All the output files are named after the input files with the extension '.html' attached to it instead of '.jemdoc'
-
-# My improvements to commandline parsing:
-# - html files are outputted to a directory specified by the -o optional argument. If none is provided by the user, a default is used
-# - when compiling with react, the -o argument will be the name of the react application folder. The application name and title is decided during initialization of react app
-# - only one arg for -o, raise error otherwise
-# - only one arg for -c, raise error otherwise
-# - if using react at compile time, no -c argument is used
-# - all input files must exist in current dir. If they do not end with extension '.jemdoc' raise error
-# - arguments can come in any order now
-# - jemdoc will have a man page
-
-# Improvements to the html
-# - uses html5 syntax now
-
-# Improvements to the css
-# - more control over components via css than meta language
-# - ability to use less
-
-# Improvements to project structure
-# when not using react:
-# - styles directory
-# - js directory
-# - html directory
-
-# when using react:
-# - use react structure
-
-# Replacement of latex with mathJax
-
-# Proposed React Components:
-# - List Component
-# - Sidenar Component
-# - Navbar Component
-# - Footer Component
-# - Image Component
-# - Form Component
-# - Codeblock Component
-# - Title Component
-# - Info Component
-"""

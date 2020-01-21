@@ -1,14 +1,20 @@
+#!/usr/bin/env python2
+
 import argparse, os, subprocess, sys, shutil
 
+class CommandLineParser(object):
+    '''
+    The CommandLineParser parses and processes command line arguments provided by the user.
+    
+    Args:
 
-class CommandLineParser():
-    """
-    This class parses the command line arguments. 
-    Upon illegal usage of commandline arguments or error in parsing commandline arguments, it terminates and exits the program
-    """
+    Attributes:
+        parser (ArgumentParser): this is the backbone for parsing cli arguments
+        _cssEngine (str): represents the css preprocessor the user is using
+    '''
     def __init__(self):
         self._DEFAULT_OUTDIR = "."
-        self._version = '0.7.3'
+        self._version = "0.8.0"
         self._cssEngine = None
         self.parser = argparse.ArgumentParser(
             prog="Jemdoc",
@@ -68,12 +74,30 @@ class CommandLineParser():
         # self.createStandardConfig()
 
     def getArgs(self):
+        '''
+        Provides access to the cli arguments the user provides
+
+        Returns:
+            user cli argument object
+        '''
         return self._args
 
     def getStandardConfigPath(self):
+        '''
+        Provides path to the standard configuration file
+
+        Returns:
+            path to the standard configuration file
+        '''
         return os.path.join(os.getcwd(), "configs", "standardconf.config")
 
     def getInputFiles(self):
+        '''
+        Returns a list of user input files
+
+        Returns:
+            Input files to be processed by jemdoc
+        '''
         return self._args.input
 
     def _checkOutputDir(self, outdir):
@@ -110,6 +134,9 @@ class CommandLineParser():
         return self._args.config
 
     def showConfig(self):
+        '''
+
+        '''
         return self._args.showConfig
 
     def displayConfig(self):
@@ -117,6 +144,12 @@ class CommandLineParser():
         sys.exit(1)
 
     def showInfo(self):
+        '''
+        
+
+        Returns:
+            True if user requests for system platform info, False otherwise
+        '''
         return self._args.info
 
     def displayInfo(self):
@@ -184,14 +217,20 @@ class CommandLineParser():
             sys.exit(1)
 
     def _checkFileExists(self, file):
-        if not os.path.exists(file):
-            raise argparse.ArgumentTypeError(
-                "file '{}' does not exists in current directory".format(file))
-        elif not os.path.isfile(file):
-            raise argparse.ArgumentTypeError(
-                "{} is a directory and not a file. Please provide a file".
-                format(file))
-        return str(file)
+        if "*" in filename:
+            name, ext = os.path.splitext(filename)
+            files = []
+            if "*" in name:
+                files = [str(f) for f in os.listdir('.') if os.path.isfile(f)]
+            elif "*" in ext:
+                files = [str(f) for f in os.listdir('.') if f.startswith(name)]
+            return files
+
+        if not os.path.exists(filename):
+            raise argparse.ArgumentTypeError("file '{}' does not exists in current directory".format(filename))
+        elif not os.path.isfile(filename):
+            raise argparse.ArgumentTypeError("{} is a directory and not a file. Please provide a file".format(filename))
+        return str(filename)
 
     @staticmethod
     def getStandardConfig(self, toFile=False):
@@ -281,7 +320,7 @@ class CommandLineParser():
   <main class="container" id="tlayout">
   <div class="row">
   <!-- Side menu -->
-  <aside class="col-12 col-md-3" id="sidemenu">
+  <aside class="col-12 col-md-3 %s" id="%s"> 
   <ul class="nav nav-pills flex-column">
   
   [menuend]
@@ -360,45 +399,6 @@ class CommandLineParser():
   
   [lastupdated]
   Page generated |, by <a href="http://jemdoc.jaboc.net/">jemdoc</a>.
-
-  [formstart]
-  <form method="|1" action="|2">
-
-  [inputtext]
-  <input type="text" name="|1" |2>
-
-  [inputpassword]
-  <input type="password" name="|1" |2>
-
-  [inputemail]
-  <input type="email" name="|1" |2>
-
-  [inputnumber] 
-  <input type="number" name="|1" |2>
-
-  [inputsubmit]
-  <input type="submit">
-
-  [formend]
-  </form>
-
-  [videostart]
-  <video width="|1" height="|2" |3>
-
-  [videosource]
-  <source src="|1" type="video/|2">
-
-  [videoend]
-  </video>
-
-  [audiostart]
-  <audio |1>
-
-  [audiosource]
-  <source src="|1" type="audio/|2">
-
-  [audioend]
-  </audio>
 
   [sourcelink]
   (<a href="|">source</a>)
