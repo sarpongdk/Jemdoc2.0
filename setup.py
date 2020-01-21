@@ -13,6 +13,7 @@ with open("requirements.txt", "r") as fr:
    for line in fr:
       requirements.append(line.strip())
 
+# setup tools
 setuptools.setup(name='jemdoc',
       version='0.8.0',
       description='jemdoc is a light text-based markup language designed for creating websites. It takes a text file written with jemdoc markup, an optional configuration file and an optional menu file, and makes static websites',
@@ -23,5 +24,12 @@ setuptools.setup(name='jemdoc',
       python_requires="==2.7.*",
       url='https://github.com/sarpongdk/Jemdoc2.0',
       packages=setuptools.find_packages(),
-      install_requires=requirements
-     )
+      install_requires=requirements,
+      classifiers=[
+         "Programming Language :: Python :: 2",
+         "Operating System :: OS Independent"
+      ],
+      entry_points={
+         "console_scripts": ["jemdoc=jemdoc.main:main"]
+      }
+    )

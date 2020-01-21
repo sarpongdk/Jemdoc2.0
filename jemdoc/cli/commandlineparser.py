@@ -182,17 +182,17 @@ class CommandLineParser(object):
                 "css engine '{}' is not supported".format(engine))
         return engineName
 
-    def installCssEngine(self):
-        engine = self._args.cssEngine
-        #print "Engine: " + engine
-        if engine == "less":
-            #self._install("lesscpy")
-            self._cssEngine = "lesscpy"
-        elif engine == "sass" or engine == "scss":
-            #self._install("libsass")
-            self._cssEngine = "pysassc"
-        else:
-            self._cssEngine = "css"
+    # def installCssEngine(self):
+    #     engine = self._args.cssEngine
+    #     #print "Engine: " + engine
+    #     if engine == "less":
+    #         #self._install("lesscpy")
+    #         self._cssEngine = "lesscpy"
+    #     elif engine == "sass" or engine == "scss":
+    #         #self._install("libsass")
+    #         self._cssEngine = "pysassc"
+    #     else:
+    #         self._cssEngine = "css"
 
     def getCssEngine(self):
         return self._cssEngine
@@ -216,7 +216,7 @@ class CommandLineParser(object):
             print "\033[91mWarn\033[00m: {}".format(str(ex).lower())
             sys.exit(1)
 
-    def _checkFileExists(self, file):
+    def _checkFileExists(self, filename):
         if "*" in filename:
             name, ext = os.path.splitext(filename)
             files = []
@@ -269,7 +269,7 @@ class CommandLineParser(object):
   </div>
 
   [navstart]
-  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <nav class="navbar navbar-expand-lg navbar-light bg-light %s" id="%s">
   <!-- <a class="navbar-brand" href="#">Navbar</a> = Navbar Brand -->
   <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
   <span class="navbar-toggler-icon"></span>

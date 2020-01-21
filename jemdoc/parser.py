@@ -36,8 +36,9 @@ def readnoncomment(f):
 
 def parseconf(cns):
     """
-  This function parses configuration configuration filenames.
-  cns is a list of configuration filenames
+  This function parses configuration configuration file.
+
+  cns is a list of configuration files
   
   This parses the given configuration file into a dictionary in which the tag variable are the contents of the square brackets
   in the config file
@@ -82,7 +83,7 @@ def insertmenuitems(f, mname, current, prefix):
     """
   This function inserts menu items into the output html
   
-  mname is the filename of the menu file
+  mname is the name of the menu file
   current is the 
   prefix is the
   f is the ControlStruct wrapper class that decorates the output file object
@@ -360,11 +361,21 @@ def replacelinks(b):
   This method replaces all links written in the meta language and produces the corresponding HTML anchor tag
   with the href attribute appropriately populated
   """
+  # TODO: add class and id here
     # works with [link.html new link style].
-    r = re.compile(r'(?<!\\)\[(.*?)(?:\s(.*?))?(?<!\\)\]', re.M + re.S)
+    r = re.compile(r'(?<!\\)\[(.*?)(?:\s(.*?))?(?<!\\)\](\.[A-Za-z0-9]+)?(#[A-Za-z0-9]+)?', re.M + re.S)
     m = r.search(b)
+
     while m:
         m1 = m.group(1).strip()
+        anchorClass = m.group(3).strip() if m.group(3) else None
+        anchorId = m.group(4).strip() if m.group(4) else None
+
+        if anchorClass:
+            anchorClass = anchorClass[1:]
+        
+        if anchorId:
+            anchorId = anchorId[1:]
 
         if '@' in m1 and not m1.startswith('mailto:') and not m1.startswith('http://'):
             link = 'mailto:' + m1
@@ -385,8 +396,16 @@ def replacelinks(b):
             # remove any mailto before labelling.
             linkname = re.sub('^mailto:', '', link)
 
-        b = b[:m.start()] + r'<a href=\"%s\">%s<\/a>' % (
-            link, linkname) + b[m.end():]
+        aId = ''
+        if anchorId:
+            aId = 'id="%s"' % anchorId
+
+        aClass = ''
+        if anchorClass:
+            aClass = 'class="%s"' % anchorClass
+
+
+        b = b[:m.start()] + r'<a href=\"%s\" %s %s>%s<\/a>' % (link, aId, aClass, linkname) + b[m.end():]
 
         m = r.search(b, m.start())
 
@@ -894,7 +913,7 @@ def insertnavbaritems(f, mname, current, prefix):
     """
   This function inserts navbar items into the navbar html
   
-  mname is the filename of the menu file
+  mname is the name of the menu file
   current is the 
   prefix is the
   """
@@ -943,7 +962,7 @@ def procfile(f, cliparser):
     f.linenum = 0
 
     menu = {}
-    navbar = None
+    navbar = {}
     # convert these to a dictionary.
     showfooter = True
     showsourcelink = False
@@ -990,14 +1009,20 @@ def procfile(f, cliparser):
                 elif b.startswith('nav'):
                     # navbar
                     nav = True
-                    r = re.compile(r'(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
+                    r = re.compile(r'(\.[A-Za-z0-9]+)?(#[A-Za-z0-9]+)?(?<!\\){(.*?)(?<!\\)}', re.M + re.S)
                     g = re.findall(r, b)
                     if len(g) > 3 or len(g) < 2:
                         raise SyntaxError('navbar error on line %d' % f.linenum)
                     if len(g) == 2:
-                        navbar = (f, g[0], g[1], '')
+                        navbar = {'file': f, 'navname': g[0][2], 'page': g[1][2], 'preface': ''}
+                        # navbar = (f, g[0], g[1], '')
                     else:
-                        navbar = (f, g[0], g[1], g[2])
+                        navbar = {'file': f, 'navname': g[0][2], 'page': g[1][2], 'preface': g[2][2]}
+                        # navbar = (f, g[0], g[1], g[2])
+                    if g[0][0]:
+                        navbar['class'] = g[0][0]
+                    if g[0][1]:
+                        navbar['id'] = g[0][1]
 
                 elif b.startswith('nofooter'):
                     showfooter = False
@@ -1010,7 +1035,8 @@ def procfile(f, cliparser):
 
                 elif b.startswith('fwtitle'):
                     fwtitle = True
-
+                # elif b.startswith('footerid'): # add footer id and class
+                #     r = re.compile(r'')
                 elif b.startswith('showsource'):
                     showsourcelink = True
 
@@ -1098,7 +1124,11 @@ def procfile(f, cliparser):
 
     # navbar
     if navbar:
-        out(f.outf, f.conf['navstart'])
+        # navbar = {'file': f, 'class': g[0][0], 'id': g[0][1], 'menuname': g[0][2], 'page': g[1][2], 'preface': g[2][2]} 
+        navstart = f.conf['navstart'] % (navbar.get('class', ''), navbar.get('id', 'navbar-menu'))
+        out(f.outf, navstart)
+        # navbar = (f, 'menuname', 'page', 'preface')
+        navData = ( navbar['file'], navbar['menuname'], navbar['page'], navbar['preface'] ) 
         insertnavbaritems(*navbar)
         out(f.outf, f.conf['navend'])
     else:
@@ -1155,7 +1185,6 @@ def procfile(f, cliparser):
         # look for blocks.
         elif p == '~':
             getNextLine(f)
-
             # TODO: add class and id here
             # add class and id here
             if infoblock:
@@ -1223,10 +1252,10 @@ def procfile(f, cliparser):
                     imgId = None
                     imgClassSplit = g[1].split('.')
                     imgIdSplit = g[1].split('#')
-                    if len(imgClassSplit) > 0:
+                    if len(imgClassSplit) > 1:
                         imgClass = imgClassSplit[1]
 
-                    if len(imgIdSplit) > 0:
+                    if len(imgIdSplit) > 1:
                         imgId = imgIdSplit[1]
 
                     g += [''] * (7 - len(g))
@@ -1455,51 +1484,4 @@ def procfile(f, cliparser):
         f.outf.close()
 
 
-def main():
-    cliparser = CommandLineParser()
-    if cliparser.showConfig():
-        cliparser.displayConfig()
-
-    if cliparser.showInfo():
-        cliparser.displayInfo()
-
-    cliparser.installCssEngine()
-    cssEngine = cliparser.getCssEngine()
-
-    confnames = []
-    innames = cliparser.getInputFiles()
-    outdirname = cliparser.getOutputDir()
-    if cliparser.getUserConfig():
-        confnames.append(cliparser.getUserConfig())
-
-    conf = parseconf(confnames)  # this function parses the configuration filenames in the list and returns config files
-
-    # TODO: verify this
-    if outdirname is not None: 
-      if not os.path.isdir(outdirname) and len(innames) > 1:
-        raise RuntimeError('cannot handle one outfile with multiple infiles')
-
-    # for each input file, format the corresponding output file
-    for inname in innames:
-        filename = re.sub(r'.jemdoc$', '', inname) + '.html'
-        if outdirname is None:
-            outfile = filename
-        elif os.path.isdir(outdirname):
-            # if directory, prepend directory to automatically generated name.
-            outfile = os.path.join(outdirname, filename)
-        # else:
-        #     outfile = outdirname
-
-        infile = open(inname, 'rUb')
-        outfile = open(outfile, 'w')
-
-        # create a control struct with the necessary parsed configuration
-        f = ControlStruct(infile, outfile, conf, inname)
-
-        procfile(f, cliparser)
-
-
-# main
-if __name__ == '__main__':
-    main()
-
+# # TODO: regex matching bug for optional capture group
