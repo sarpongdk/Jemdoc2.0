@@ -1,30 +1,24 @@
 # virtualenv
-myenv/
-
-# mytests
-mytests/
+env/
 
 # production
 dist/
 build/
 *.egg-info/
 
-# for personal use
-notes
+# unnecessary files
 *.pyc
 
-# web stuff
+# web 
 *.css
 *.html
 *.jsx
 
-# test config files
-configs*
-example-pages*
+# in-progress
+react
 
 # backups and vscode
 *.bak
 .vscode
-example*
 
 
