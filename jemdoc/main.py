@@ -1,10 +1,12 @@
 from cli.commandlineparser import CommandLineParser
+from cli.defaultconfig import DefaultConfig
 from control.controlstruct import ControlStruct
 from control.jandal import JandalError
 
 from parser import *
 
 def main():
+    defaultConfig = DefaultConfig()
     cliparser = CommandLineParser()
     if cliparser.showConfig():
         cliparser.downloadStandardConfig()
@@ -24,7 +26,7 @@ def main():
     if not innames and not cliparser.showInfo() and not cliparser.showConfig():
         raise RuntimeError("Error: no input files provided...")
 
-    conf = parseconf(confnames)  # this function parses the configuration filenames in the list and returns config files
+    conf = parseconf(confnames, defaultConfig)  # this function parses the configuration filenames in the list and returns config files
 
     # TODO: verify this, might not need this
     # if outdirname is not None: 

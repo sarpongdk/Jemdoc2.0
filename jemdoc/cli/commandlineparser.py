@@ -212,10 +212,6 @@ class CommandLineParser(object):
             raise argparse.ArgumentTypeError("{} is a directory and not a file. Please provide a file".format(filename))
         return str(filename)
 
-    @staticmethod
-    def getStandardConfig():
-        return self._standardConfig.getStandardConfig()
-
     def downloadStandardConfig(self):
         self._standardConfig.downloadStandardConfig()
         sys.exit(1)

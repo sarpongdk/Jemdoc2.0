@@ -13,10 +13,6 @@ from control.controlstruct import ControlStruct
 from control.jandal import JandalError
 from styling.style import Style
 
-def standardconf():
-    return CommandLineParser.getStandardConfig()
-
-
 def raisejandal(msg, line=0):
     if line == 0:
         s = "%s" % msg
@@ -35,11 +31,12 @@ def readnoncomment(f):
         return l.rstrip() + '\n'  # leave just one \n and no spaces etc.
 
 
-def parseconf(cns):
+def parseconf(cns, defaultConfig):
     syntax = {}
     warn = False
     # manually add the defaults as a file handle.
-    fs = [StringIO.StringIO(standardconf())]  # fs represents all the configuration files, including the default configuration file, as file objects
+    standardconf = defaultConfig.getStandardConfig()
+    fs = [ StringIO.StringIO(standardconf) ]  # fs represents all the configuration files, including the default configuration file, as file objects
     for sname in cns:
         fs.append(open(sname, 'rb'))  # opens each configuration file and appends the file object to fs
 

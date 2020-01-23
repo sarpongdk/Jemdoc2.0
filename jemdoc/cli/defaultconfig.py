@@ -2,7 +2,8 @@ import os
 
 class DefaultConfig:
     def __init__(self):
-        self._config = """firstbit]
+        self._config = """
+  [firstbit]
   <!doctype html>
   <html lang="en">
   <head>
