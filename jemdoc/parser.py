@@ -11,9 +11,10 @@ import tempfile
 from cli.commandlineparser import CommandLineParser
 from control.controlstruct import ControlStruct
 from control.jandal import JandalError
+from styling.style import Style
 
 def standardconf():
-    return CommandLineParser.getStandardConfig(False)
+    return CommandLineParser.getStandardConfig()
 
 
 def raisejandal(msg, line=0):
@@ -35,26 +36,12 @@ def readnoncomment(f):
 
 
 def parseconf(cns):
-    """
-  This function parses configuration configuration file.
-
-  cns is a list of configuration files
-  
-  This parses the given configuration file into a dictionary in which the tag variable are the contents of the square brackets
-  in the config file
-  
-  The tag variable is the key and the resulting HTML page is the value in the syntax dict
-  """
     syntax = {}
     warn = False
     # manually add the defaults as a file handle.
-    fs = [
-        StringIO.StringIO(standardconf())
-    ]  # fs represents all the configuration files, including the default configuration file, as file objects
+    fs = [StringIO.StringIO(standardconf())]  # fs represents all the configuration files, including the default configuration file, as file objects
     for sname in cns:
-        fs.append(
-            open(sname, 'rb')
-        )  # opens each configuration file and appends the file object to fs
+        fs.append(open(sname, 'rb'))  # opens each configuration file and appends the file object to fs
 
     for f in fs:  # for each file object in fs
         # ControlStruct(fileObj) wraps fileObj in ControlStruct class
@@ -1076,6 +1063,8 @@ def procfile(f, cliparser):
 
     # writing default css link tag to output file
     if not nodefaultcss:
+        outdir = f.getOutputDir()
+        Style.downloadDefaultCSS(outdir)
         out(f.outf, f.conf['defaultcss'])
 
     # Add per-file css lines here.

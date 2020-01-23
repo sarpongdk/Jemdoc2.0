@@ -7,7 +7,7 @@ from parser import *
 def main():
     cliparser = CommandLineParser()
     if cliparser.showConfig():
-        cliparser.displayConfig()
+        cliparser.downloadStandardConfig()
 
     if cliparser.showInfo():
         cliparser.displayInfo()
@@ -21,17 +21,21 @@ def main():
     if cliparser.getUserConfig():
         confnames.append(cliparser.getUserConfig())
 
+    if not innames and not cliparser.showInfo() and not cliparser.showConfig():
+        raise RuntimeError("Error: no input files provided...")
+
     conf = parseconf(confnames)  # this function parses the configuration filenames in the list and returns config files
 
-    # TODO: verify this
-    if outdirname is not None: 
-      if not os.path.isdir(outdirname) and len(innames) > 1:
-        raise RuntimeError('cannot handle one outfile with multiple infiles')
+    # TODO: verify this, might not need this
+    # if outdirname is not None: 
+    #   if not os.path.isdir(outdirname) and len(innames) > 1:
+    #     raise RuntimeError('cannot handle one outfile with multiple infiles')
 
     # for each input file, format the corresponding output file
     for inname in innames:
         filename = re.sub(r'.jemdoc$', '', inname) + '.html'
         if outdirname is None:
+            outdirname = '.'
             outfile = filename
         elif os.path.isdir(outdirname):
             # if directory, prepend directory to automatically generated name.
@@ -43,8 +47,8 @@ def main():
         outfile = open(outfile, 'w')
 
         # create a control struct with the necessary parsed configuration
-        f = ControlStruct(infile, outfile, conf, inname)
-
+        print "Processing \033[96m%s...\033[00m" % inname
+        f = ControlStruct(infile, outfile, conf, inname, outdirname)
         procfile(f, cliparser)
 
 

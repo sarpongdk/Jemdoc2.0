@@ -1,5 +1,5 @@
 class ControlStruct(object):
-    def __init__(self, infile, outfile=None, conf=None, inname=None):
+    def __init__(self, infile, outfile=None, conf=None, inname=None, outdirname='.'):
         self.inname = inname
         self.inf = infile
         self.outf = outfile
@@ -9,6 +9,7 @@ class ControlStruct(object):
         self.texlines = []
         self.analytics = None
         self.baseline = None
+        self.outdirname = outdirname
 
     def pushfile(self, newfile):
         """
@@ -21,3 +22,12 @@ class ControlStruct(object):
     def nextfile(self):
         self.inf.close()
         self.inf = self.otherfiles.pop(0)
+
+    def getCurrentInputFile(self):
+        return self.inf
+
+    def getOutputFile(self):
+        return self.outf
+
+    def getOutputDir(self):
+        return self.outdirname

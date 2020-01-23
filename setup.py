@@ -31,5 +31,10 @@ setuptools.setup(name='jemdoc',
       ],
       entry_points={
          "console_scripts": ["jemdoc=jemdoc.main:main"]
+      },
+      include_package_data=True,
+      package_data={
+         # include any config/*.txt file and css/*.css file in jemdoc package
+         "": [ "*.css" ]
       }
     )
